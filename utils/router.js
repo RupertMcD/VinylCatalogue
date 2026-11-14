@@ -68,6 +68,12 @@ async function renderCurrent() {
   // If the person moved on while this screen was loading, don't show it.
   if (thisRender !== renderCount) return;
 
+  // Let the old screen tidy up first (for example, switch the camera off).
+  const previous = mountPoint.firstElementChild;
+  if (previous && typeof previous.cleanup === 'function') {
+    try { previous.cleanup(); } catch (error) { console.error(error); }
+  }
+
   mountPoint.replaceChildren(node);
   window.scrollTo(0, node.initialScrollY ?? 0);
 }

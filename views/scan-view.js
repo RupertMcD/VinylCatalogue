@@ -1,5 +1,5 @@
-// The Add by Barcode screen: type the numbers under the barcode
-// (the camera scanner is added on top of this).
+// The Add by Barcode screen: scan with the camera, or type the numbers
+// under the barcode. Either way it goes on to the Discogs lookup.
 
 import { getDiscogsToken } from '../services/settings-store.js';
 import { checkBarcode } from '../utils/barcode.js';
@@ -24,7 +24,17 @@ export function renderScanView() {
           <a class="pill-button" href="#/settings">Open Settings</a>
         </div>`}
 
-      <h2 class="group-header group-header--first">Type the barcode</h2>
+      <section class="camera" aria-label="Camera">
+        <video class="camera-video" playsinline muted autoplay></video>
+        <div class="camera-guide" aria-hidden="true"></div>
+        <div class="camera-message" role="status">Starting the camera…</div>
+      </section>
+      <p class="camera-hint">Line the barcode up inside the frame.</p>
+      <div class="camera-retry" hidden>
+        <button type="button" class="pill-button" data-action="retry-camera">Try the Camera Again</button>
+      </div>
+
+      <h2 class="group-header">Or type the barcode</h2>
       <form class="grouped" data-form="barcode" novalidate>
         <label class="row field" data-field="barcode">
           <span class="visually-hidden">Barcode numbers</span>
@@ -68,5 +78,72 @@ export function renderScanView() {
   });
 
   node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/'));
+
+  // The camera. It stops when this screen closes or the app goes into the background.
+  const camera = node.querySelector('.camera');
+  const video = node.querySelector('.camera-video');
+  const cameraMessage = node.querySelector('.camera-message');
+  const hint = node.querySelector('.camera-hint');
+  const retry = node.querySelector('.camera-retry');
+  let scanner = null;
+  let closed = false;
+
+  function setCameraState(state, message = '') {
+    camera.dataset.state = state;
+    cameraMessage.textContent = message;
+    cameraMessage.hidden = !message;
+    hint.hidden = state !== 'scanning';
+    retry.hidden = state !== 'error';
+  }
+
+  async function startCamera() {
+    if (closed || scanner) return;
+    setCameraState('starting', 'Starting the camera…');
+    let startCameraScanner;
+    try {
+      ({ startCameraScanner } = await import('../utils/camera-scanner.js'));
+    } catch {
+      setCameraState('error', "The barcode scanner couldn't load. You can type the barcode below.");
+      return;
+    }
+    if (closed) return;
+    scanner = startCameraScanner(video, {
+      onStarted: () => setCameraState('scanning'),
+      onFound: (digits) => {
+        scanner = null;
+        setCameraState('found', `Found ${digits}`);
+        navigate(`/lookup/${digits}`);
+      },
+      onError: (message) => {
+        scanner = null;
+        setCameraState('error', message);
+      },
+    });
+  }
+
+  function stopCamera() {
+    if (scanner) scanner.stop();
+    scanner = null;
+  }
+
+  function onVisibilityChange() {
+    if (document.hidden) {
+      stopCamera();
+    } else if (camera.dataset.state !== 'error' && camera.dataset.state !== 'found') {
+      startCamera();
+    }
+  }
+
+  node.querySelector('[data-action="retry-camera"]').addEventListener('click', startCamera);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
+  // Called by the router when another screen replaces this one.
+  node.cleanup = () => {
+    closed = true;
+    stopCamera();
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+  };
+
+  startCamera();
   return node;
 }

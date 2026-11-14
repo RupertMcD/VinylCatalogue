@@ -44,8 +44,9 @@ developer account.
 - Keep files small and named after what they do
   (`record-detail.js`, `discogs-service.js`).
 - Folders: `models/`, `views/`, `services/`, `utils/`, `styles/`,
-  `icons/`, `tests/`. `index.html`, `manifest.webmanifest` and the
-  service worker sit at the top level.
+  `icons/`, `tests/`, and `vendor/` for approved outside libraries
+  (copied in unchanged, with their licence). `index.html`,
+  `manifest.webmanifest` and the service worker sit at the top level.
 - Every screen can be shown with sample data, using a "load sample
   records" option that only appears while developing.
 - Write unit tests for logic: search, Discogs response parsing, CSV
