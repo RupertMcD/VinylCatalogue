@@ -6,7 +6,7 @@ import { gradeName } from '../models/record.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 import { formatDate, formatPrice } from '../utils/format.js';
 import { icons } from '../utils/icons.js';
-import { goBack } from '../utils/router.js';
+import { goBack, navigate } from '../utils/router.js';
 import { coverArt } from './cover-art.js';
 import { showConfirmSheet } from './confirm-sheet.js';
 
@@ -114,7 +114,9 @@ export async function renderRecordDetailView(id) {
     try {
       await deleteRecord(record.id);
       keepCoversOffline(); // Removes its saved cover.
-      goBack('/');
+      // Always to the Collection: going "back" could land on a barcode
+      // lookup, which would offer to add the record again.
+      navigate('/', { replace: true });
     } catch {
       const notice = node.querySelector('.notice');
       notice.textContent = "The record couldn't be deleted. Please try again.";

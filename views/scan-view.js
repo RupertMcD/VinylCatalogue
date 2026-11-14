@@ -85,6 +85,7 @@ export function renderScanView() {
   const cameraMessage = node.querySelector('.camera-message');
   const hint = node.querySelector('.camera-hint');
   const retry = node.querySelector('.camera-retry');
+  const retryButton = node.querySelector('[data-action="retry-camera"]');
   let scanner = null;
   let closed = false;
 
@@ -93,7 +94,8 @@ export function renderScanView() {
     cameraMessage.textContent = message;
     cameraMessage.hidden = !message;
     hint.hidden = state !== 'scanning';
-    retry.hidden = state !== 'error';
+    retry.hidden = state !== 'error' && state !== 'paused';
+    retryButton.textContent = state === 'paused' ? 'Scan Another Record' : 'Try the Camera Again';
   }
 
   async function startCamera() {
@@ -109,9 +111,12 @@ export function renderScanView() {
     if (closed) return;
     scanner = startCameraScanner(video, {
       onStarted: () => setCameraState('scanning'),
+      onNeedsTap: () => setCameraState('tap', 'Tap here to show the camera'),
       onFound: (digits) => {
         scanner = null;
         setCameraState('found', `Found ${digits}`);
+        // Remember this scan, so coming Back here doesn't scan the same record again.
+        history.replaceState({ ...(history.state || {}), scanned: true }, '');
         navigate(`/lookup/${digits}`);
       },
       onError: (message) => {
@@ -129,12 +134,21 @@ export function renderScanView() {
   function onVisibilityChange() {
     if (document.hidden) {
       stopCamera();
-    } else if (camera.dataset.state !== 'error' && camera.dataset.state !== 'found') {
+    } else if (['starting', 'scanning', 'tap'].includes(camera.dataset.state)) {
       startCamera();
     }
   }
 
-  node.querySelector('[data-action="retry-camera"]').addEventListener('click', startCamera);
+  // If iOS needs a tap before it shows the camera picture.
+  camera.addEventListener('click', () => {
+    if (camera.dataset.state !== 'tap') return;
+    video.play().then(() => setCameraState('scanning')).catch(() => {});
+  });
+
+  retryButton.addEventListener('click', () => {
+    history.replaceState({ ...(history.state || {}), scanned: false }, '');
+    startCamera();
+  });
   document.addEventListener('visibilitychange', onVisibilityChange);
 
   // Called by the router when another screen replaces this one.
@@ -144,6 +158,11 @@ export function renderScanView() {
     document.removeEventListener('visibilitychange', onVisibilityChange);
   };
 
-  startCamera();
+  // Coming Back after a scan: wait to be asked, rather than scanning again.
+  if (history.state && history.state.scanned) {
+    setCameraState('paused', 'Ready for the next record.');
+  } else {
+    startCamera();
+  }
   return node;
 }

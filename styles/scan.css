@@ -101,14 +101,18 @@
   right: 8%;
   top: 30%;
   bottom: 30%;
-  border: 2px solid rgba(255, 255, 255, 0.9);
+  border: 3px solid rgba(255, 255, 255, 0.95);
   border-radius: 10px;
-  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.35);
+  /* A small soft edge only: very large shadows can draw as solid black on iOS. */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 0 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
   transition: border-color 0.2s;
 }
 
 .camera[data-state="found"] .camera-guide { border-color: #34c759; }
 .camera[data-state="error"] .camera-guide,
+.camera[data-state="paused"] .camera-guide,
+.camera[data-state="tap"] .camera-guide,
 .camera[data-state="starting"] .camera-guide { opacity: 0; }
 
 .camera-message {
@@ -122,7 +126,10 @@
   color: #fff;
   font-size: 15px;
   line-height: 1.4;
+  pointer-events: none;
 }
+
+.camera[data-state="tap"] { cursor: pointer; }
 
 .camera[data-state="found"] .camera-message {
   inset: auto 0 12px;

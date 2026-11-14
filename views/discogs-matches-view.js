@@ -99,6 +99,8 @@ export async function renderDiscogsMatchesView(barcodeText) {
   }
 
   function showMatches(matches, owned) {
+    // Mark this lookup as shown (only while it's the screen on show).
+    if (node.isConnected) history.replaceState({ ...(history.state || {}), listed: true }, '');
     const heading = matches.length === 1 ? '1 match on Discogs' : `${matches.length} matches on Discogs`;
     body.innerHTML = `
       ${ownedNotice(owned)}
@@ -147,7 +149,9 @@ export async function renderDiscogsMatchesView(barcodeText) {
     }
 
     const owned = await findOwned(digits);
-    if (matches.length === 1 && owned.length === 0) {
+    // Only jump straight to the form the first time, never when coming Back.
+    const seenBefore = Boolean(history.state && history.state.listed);
+    if (matches.length === 1 && owned.length === 0 && !seenBefore) {
       body.innerHTML = '<div class="empty-state"><p role="status">Found it. Getting the details…</p></div>';
       const result = await choose(matches[0], { replace: true });
       if (result === true) return;

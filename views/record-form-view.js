@@ -225,7 +225,9 @@ export async function renderRecordFormView(id = null) {
     if (existing) {
       goBack(`/record/${encodeURIComponent(record.id)}`);
     } else {
-      navigate(`/record/${encodeURIComponent(record.id)}`, { replace: true });
+      // A new record goes to the Collection, so Back can't lead into the
+      // scanner again and add a second copy by mistake.
+      navigate('/', { replace: true });
     }
   });
 

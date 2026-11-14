@@ -23,8 +23,31 @@ export function cameraIsAvailable() {
   return Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }
 
+// iOS only shows a live camera view in a page when the video is muted and
+// plays "inline" (inside the page, not full screen). Set both in code, as
+// the HTML attributes alone aren't always enough.
+function prepareVideo(video) {
+  video.muted = true;
+  video.defaultMuted = true;
+  video.playsInline = true;
+  video.autoplay = true;
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
+  video.setAttribute('muted', '');
+}
+
+function waitForPicture(video) {
+  if (video.readyState >= 1) return Promise.resolve();
+  return new Promise((resolve) => {
+    const done = () => { clearTimeout(timer); resolve(); };
+    const timer = setTimeout(done, 3000);
+    video.addEventListener('loadedmetadata', done, { once: true });
+  });
+}
+
 // Returns { stop }. onError(message) is called with a friendly message.
-export function startCameraScanner(video, { onFound, onError, onStarted }) {
+// onNeedsTap() is called if iOS wants a tap before showing the camera.
+export function startCameraScanner(video, { onFound, onError, onStarted, onNeedsTap }) {
   let stream = null;
   let stopped = false;
   let timer = null;
@@ -42,6 +65,7 @@ export function startCameraScanner(video, { onFound, onError, onStarted }) {
   // Reads the middle band of the picture, where the guide frame is.
   async function scanOnce() {
     if (stopped) return;
+    if (video.paused) video.play().catch(() => {});
     try {
       const width = video.videoWidth;
       const height = video.videoHeight;
@@ -96,10 +120,17 @@ export function startCameraScanner(video, { onFound, onError, onStarted }) {
         return;
       }
       stream = newStream;
+      prepareVideo(video);
       video.srcObject = stream;
-      await video.play().catch(() => {});
-      if (onStarted) onStarted();
-      scanOnce();
+      await waitForPicture(video);
+      try {
+        await video.play();
+        if (onStarted) onStarted();
+      } catch {
+        // iOS sometimes wants a tap first. Scanning still works meanwhile.
+        if (onNeedsTap) onNeedsTap();
+      }
+      if (!stopped) scanOnce();
     } catch (error) {
       if (!stopped) {
         stop();
