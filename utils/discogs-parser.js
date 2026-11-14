@@ -68,6 +68,9 @@ export function parseSearchResults(json) {
         formatText: [...new Set(formatWords)].join(' · '),
         isVinyl: isVinyl(formatWords),
         thumb: result.thumb || result.cover_image || '',
+        // Every number Discogs lists for this pressing: barcodes, and the
+        // matrix/runout numbers etched near the label. Used to narrow down.
+        identifiers: (Array.isArray(result.barcode) ? result.barcode : []).filter((value) => typeof value === 'string'),
       };
     });
   // Keep Discogs' order otherwise, but put vinyl ahead of CDs and tapes.

@@ -6,7 +6,7 @@
 // new files the next time the app opens with signal, then uses them.
 // When you add a new app file, add it to APP_FILES (a test checks this).
 
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const CACHE_NAME = `vinyl-catalogue-${CACHE_VERSION}`;
 
 // Copies of Discogs cover pictures, kept by services/cover-cache.js.
@@ -54,6 +54,7 @@ const APP_FILES = [
   'utils/html.js',
   'utils/icons.js',
   'utils/image-resize.js',
+  'utils/match-filter.js',
   'utils/persistent-storage.js',
   'utils/record-draft.js',
   'utils/router.js',

@@ -7,6 +7,7 @@ import { searchByBarcode, searchDiscogs, getReleaseDetails } from '../services/d
 import { getAllRecords } from '../services/record-store.js';
 import { checkBarcode, sameBarcode } from '../utils/barcode.js';
 import { checkSearchText, markOwned } from '../utils/discogs-search.js';
+import { narrowMatches } from '../utils/match-filter.js';
 import { setRecordDraft, getAddTarget } from '../utils/record-draft.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 import { icons } from '../utils/icons.js';
@@ -132,13 +133,49 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null, r
       <p class="notice" role="alert" hidden></p>
       <h2 class="group-header group-header--first">${heading}</h2>
       <p class="matches-hint">${escapeHtml(hint + target)}</p>
+      ${matches.length > 1 ? `
+        <form class="grouped narrow" role="search" novalidate>
+          <label class="row field narrow-field">
+            <span class="field-label">Narrow down</span>
+            <input name="narrow" type="search" placeholder="e.g. PB 41447" autocomplete="off"
+              autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done">
+          </label>
+        </form>
+        <p class="matches-hint narrow-hint">Type the catalogue number from the spine or label, or the runout number etched near the label. To use the camera, tap the box, then <strong>Scan Text</strong>.</p>
+        <p class="narrow-count" role="status" hidden></p>` : ''}
       <div class="record-list">${matches.map(matchRow).join('')}</div>
+      <div class="empty-state narrow-empty" hidden>
+        <p></p>
+      </div>
       <div class="scan-footer">
         <button type="button" class="pill-button" data-action="by-hand">None of These – Add by Hand</button>
       </div>`;
 
     const notice = body.querySelector('.notice');
     body.querySelector('[data-action="by-hand"]').addEventListener('click', addByHand);
+
+    // Narrow down: hide the pressings that don't match what's typed.
+    const narrowForm = body.querySelector('.narrow');
+    if (narrowForm) {
+      const input = narrowForm.elements.narrow;
+      const count = body.querySelector('.narrow-count');
+      const empty = body.querySelector('.narrow-empty');
+      const list = body.querySelector('.record-list');
+      const applyNarrow = () => {
+        const text = input.value.trim();
+        const keep = new Set(narrowMatches(matches, text).map((match) => match.discogsId));
+        body.querySelectorAll('.match-row').forEach((row) => {
+          row.hidden = !keep.has(matches[Number(row.dataset.index)].discogsId);
+        });
+        count.hidden = !text;
+        count.textContent = `${keep.size} of ${matches.length} match`;
+        list.hidden = keep.size === 0;
+        empty.hidden = keep.size > 0;
+        empty.querySelector('p').textContent = `None of these match “${text}”. Check the number, or clear the box.`;
+      };
+      input.addEventListener('input', applyNarrow);
+      narrowForm.addEventListener('submit', (event) => { event.preventDefault(); input.blur(); });
+    }
     body.querySelectorAll('.match-row').forEach((row) => {
       row.addEventListener('click', async () => {
         if (body.querySelector('.match-row[aria-busy="true"]')) return;

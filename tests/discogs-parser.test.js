@@ -128,3 +128,9 @@ test('discogs: name tidying', () => {
   assertEqual(cleanDiscogsName('Sly & The Family Stone'), 'Sly & The Family Stone');
   assertEqual(cleanDiscogsName(undefined), '');
 });
+
+test('discogs: each pressing keeps its other numbers for narrowing down', () => {
+  const [match] = parseSearchResults({ results: [{ id: 5, type: 'release', title: 'A - B', format: ['Vinyl'], barcode: ['5012394144777', 'PB 41447 A 1S', 7] }] });
+  assertDeepEqual(match.identifiers, ['5012394144777', 'PB 41447 A 1S']);
+  assertDeepEqual(parseSearchResults({ results: [{ id: 6, type: 'release', title: 'A - B' }] })[0].identifiers, []);
+});

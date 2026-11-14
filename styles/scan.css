@@ -178,3 +178,25 @@
 }
 
 .add-target { margin-top: 16px; }
+
+/* Narrow down box on the matches list. */
+.narrow { margin-bottom: 8px; }
+.narrow-field .field-label { width: auto; flex: none; }
+.narrow-field input { flex: 1; min-width: 0; text-align: left; }
+.narrow-field input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.narrow-hint { margin-bottom: 14px; }
+.narrow-hint strong { font-weight: 600; color: var(--text); }
+
+.narrow-count {
+  margin: -6px calc(var(--gutter) + 16px) 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.narrow-count[hidden],
+.narrow-empty[hidden],
+.matches .record-list[hidden],
+.match-row[hidden] { display: none; }
+
+.narrow-empty { margin: 24px var(--gutter); }
