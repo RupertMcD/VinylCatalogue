@@ -117,6 +117,12 @@ export async function renderRecordDetailView(id) {
         ${row('Date added', formatDate(record.dateAdded))}
       </div>`}
 
+      ${record.shelves.length ? `
+      <h2 class="group-header">Shelves</h2>
+      <div class="grouped">
+        <div class="row shelf-chips">${record.shelves.map((name) => `<span class="shelf-chip">${escapeHtml(name)}</span>`).join('')}</div>
+      </div>` : ''}
+
       ${linksHtml(record)}
 
       <h2 class="group-header">Notes</h2>

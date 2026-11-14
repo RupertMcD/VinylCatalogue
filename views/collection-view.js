@@ -7,6 +7,7 @@ import { createElement, escapeHtml } from '../utils/html.js';
 import { icons } from '../utils/icons.js';
 import { isDevMode } from '../utils/dev-mode.js';
 import { createSampleRecords } from '../models/sample-records.js';
+import { listShelves, filterByShelf, NO_SHELF } from '../models/shelves.js';
 import { coverArt } from './cover-art.js';
 
 // What differs between the two lists.
@@ -28,7 +29,8 @@ const LISTS = {
 };
 
 // Kept between visits so search and scroll position survive opening a record.
-const states = { collection: { query: '', scrollY: 0 }, wishlist: { query: '', scrollY: 0 } };
+// `shelf` is the shelf filter: '' for all, NO_SHELF, or a shelf name.
+const states = { collection: { query: '', scrollY: 0, shelf: '' }, wishlist: { query: '', scrollY: 0, shelf: '' } };
 
 function load(key, fallback, allowed) {
   let saved = '';
@@ -126,6 +128,7 @@ export async function renderCollectionView({ list = 'collection' } = {}) {
           </select>
         </label>
       </div>
+      <div class="shelf-filter" role="group" aria-label="Show shelf" hidden></div>
       <p class="notice" role="alert" hidden></p>
       <div class="results"></div>
       ${isDevMode && list === 'collection' ? devToolsHtml : ''}
@@ -143,6 +146,31 @@ export async function renderCollectionView({ list = 'collection' } = {}) {
     notice.textContent = message;
     notice.hidden = !message;
   }
+
+  // Shelf filter chips: All, each shelf, and Not on a Shelf.
+  const shelfFilter = node.querySelector('.shelf-filter');
+  function renderShelfFilter() {
+    const shelves = list === 'collection' ? listShelves(records) : [];
+    if (state.shelf && state.shelf !== NO_SHELF
+      && !shelves.some((shelf) => shelf.name.toLocaleLowerCase('en-GB') === state.shelf.toLocaleLowerCase('en-GB'))) {
+      state.shelf = ''; // That shelf no longer exists.
+    }
+    shelfFilter.hidden = shelves.length === 0;
+    const chip = (value, label) => `<button type="button" class="filter-chip" data-shelf="${escapeHtml(value)}" aria-pressed="${state.shelf === value}">${escapeHtml(label)}</button>`;
+    shelfFilter.innerHTML = [
+      chip('', 'All'),
+      ...shelves.map((shelf) => chip(shelf.name, shelf.name)),
+      chip(NO_SHELF, 'Not on a Shelf'),
+    ].join('');
+  }
+
+  shelfFilter.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-shelf]');
+    if (!button) return;
+    state.shelf = button.dataset.shelf;
+    renderShelfFilter();
+    renderResults();
+  });
 
   function renderResults() {
     controls.hidden = records.length === 0;
@@ -165,12 +193,16 @@ export async function renderCollectionView({ list = 'collection' } = {}) {
       return;
     }
 
-    const matches = sortRecords(searchRecords(records, state.query), sort);
+    const matches = sortRecords(searchRecords(filterByShelf(records, state.shelf), state.query), sort);
     if (matches.length === 0) {
-      results.innerHTML = `
+      results.innerHTML = state.query.trim() ? `
         <div class="empty-state">
           <h2>No matches for “${escapeHtml(state.query.trim())}”</h2>
-          <p>Try a different artist or title.</p>
+          <p>Try a different artist or title${state.shelf ? ', or show All shelves' : ''}.</p>
+        </div>` : `
+        <div class="empty-state">
+          <h2>No records here</h2>
+          <p>Nothing is on this shelf.</p>
         </div>`;
       return;
     }
@@ -231,6 +263,7 @@ export async function renderCollectionView({ list = 'collection' } = {}) {
   }
 
   showNotice(loadError);
+  renderShelfFilter();
   renderResults();
   node.initialScrollY = state.scrollY;
   return node;

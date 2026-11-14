@@ -72,3 +72,78 @@
 @keyframes fade-out { to { opacity: 0; } }
 @keyframes slide-up { from { transform: translateY(100%); } }
 @keyframes slide-down { to { transform: translateY(100%); } }
+
+/* The Shelves picker sheet. */
+.action-button--bold { font-weight: 600; }
+
+.shelf-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 16px;
+  border-bottom: 0.5px solid var(--separator);
+}
+
+.shelf-new input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 17px;
+  outline: none;
+}
+
+.shelf-new input::placeholder { color: var(--text-tertiary); }
+
+.shelf-add {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shelf-options {
+  max-height: 40dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shelf-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.shelf-option + .shelf-option { border-top: 0.5px solid var(--separator); }
+
+.shelf-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.shelf-option-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
+/* A tick mark when chosen, like an iPhone list. */
+.shelf-check {
+  width: 8px;
+  height: 14px;
+  margin-right: 4px;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: rotate(45deg) translateY(-2px);
+  opacity: 0;
+}
+
+.shelf-option input:checked ~ .shelf-check { opacity: 1; }
+.shelf-option input:focus-visible ~ .shelf-option-name { text-decoration: underline; }

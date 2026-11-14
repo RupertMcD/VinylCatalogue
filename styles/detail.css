@@ -41,3 +41,13 @@
   font-size: 15px;
   color: var(--text-secondary);
 }
+
+/* A record's shelves, shown as small labels. */
+.shelf-chips { flex-wrap: wrap; gap: 8px; }
+
+.shelf-chip {
+  padding: 4px 12px;
+  border-radius: 14px;
+  background: var(--fill);
+  font-size: 15px;
+}

@@ -1,7 +1,9 @@
 // The Add / Edit Record form. The same screen does both: with an id it
 // edits that record, without one it makes a new record.
 
-import { getRecord, saveRecord } from '../services/record-store.js';
+import { getRecord, saveRecord, getAllRecords } from '../services/record-store.js';
+import { listShelves } from '../models/shelves.js';
+import { showShelfPicker } from './shelf-picker-sheet.js';
 import { keepCoversOffline } from '../services/cover-cache.js';
 import { createRecord, validateRecord, FORMATS, GRADES } from '../models/record.js';
 import { createElement, escapeHtml } from '../utils/html.js';
@@ -130,6 +132,15 @@ export async function renderRecordFormView(id = null, { list: listOption = null,
         ${field('format', 'Format', picker('format', FORMATS.map((f) => option(f, f, start.format)).join('')))}
       </div>
 
+      <h2 class="group-header" data-only="collection">Shelves</h2>
+      <div class="grouped" data-only="collection">
+        <button type="button" class="row shelves-row" data-action="shelves">
+          <span class="row-label">Shelves</span>
+          <span class="row-value" data-shelves-value></span>
+          ${icons.chevron}
+        </button>
+      </div>
+
       <h2 class="group-header" data-only="collection">Condition</h2>
       <div class="grouped" data-only="collection">
         ${field('vinylGrade', 'Vinyl', picker('vinylGrade', gradeOptions(start.vinylGrade)))}
@@ -170,6 +181,24 @@ export async function renderRecordFormView(id = null, { list: listOption = null,
 
   // Shelves are chosen on their own sheet, so they're kept here.
   let shelves = start.shelves || [];
+
+  function renderShelves() {
+    node.querySelector('[data-shelves-value]').textContent = shelves.length ? shelves.join(', ') : 'None';
+  }
+
+  node.querySelector('[data-action="shelves"]').addEventListener('click', async () => {
+    let available = [];
+    try {
+      available = listShelves(await getAllRecords()).map((shelf) => shelf.name);
+    } catch {
+      // The picker still works for making new shelves.
+    }
+    const picked = await showShelfPicker({ selected: shelves, available });
+    if (picked) {
+      shelves = picked;
+      renderShelves();
+    }
+  });
 
   function currentValues() {
     return { ...Object.fromEntries(new FormData(form)), coverImage, shelves };
@@ -289,6 +318,7 @@ export async function renderRecordFormView(id = null, { list: listOption = null,
   });
 
   updateForList();
+  renderShelves();
   renderCover();
   return node;
 }

@@ -211,3 +211,35 @@
   font-size: 16px;
   cursor: pointer;
 }
+
+/* Shelf filter: a row of chips that scrolls sideways. */
+.shelf-filter {
+  display: flex;
+  gap: 8px;
+  margin: -2px 0 14px;
+  padding: 0 var(--gutter);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shelf-filter::-webkit-scrollbar { display: none; }
+.shelf-filter[hidden] { display: none; }
+
+.filter-chip {
+  flex: none;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 17px;
+  background: var(--fill);
+  color: var(--text);
+  font-size: 15px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.filter-chip[aria-pressed="true"] {
+  background: var(--accent);
+  color: #fff;
+}

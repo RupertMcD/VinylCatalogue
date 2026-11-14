@@ -144,3 +144,16 @@
 }
 
 .list-option input:focus-visible + span { outline: 2px solid var(--accent); }
+
+.shelves-row {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.shelves-row .row-value { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.shelves-row > .icon { width: 16px; height: 16px; color: var(--text-tertiary); }

@@ -71,6 +71,7 @@ const APP_FILES = [
   'views/record-form-view.js',
   'views/scan-view.js',
   'views/settings-view.js',
+  'views/shelf-picker-sheet.js',
   'views/tab-bar.js',
   'views/toast.js',
   'views/wishlist-view.js',
