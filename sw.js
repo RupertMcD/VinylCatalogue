@@ -26,6 +26,7 @@ const APP_FILES = [
   'models/record-csv.js',
   'models/record.js',
   'models/sample-records.js',
+  'models/shelves.js',
   'services/cover-cache.js',
   'services/discogs-service.js',
   'services/record-store.js',

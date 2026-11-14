@@ -1,8 +1,13 @@
 // Saves and loads records in IndexedDB, the small database built into
 // the browser. Records stay on this device only.
 
+import { upgradeRecord } from '../models/record.js';
+
 const DB_NAME = 'vinyl-catalogue';
-const DB_VERSION = 1;
+// Version history:
+// 1: records store (phase 1)
+// 2: every record gains list, shelves and shopLink (phase 5)
+const DB_VERSION = 2;
 const STORE = 'records';
 
 const FRIENDLY_ERROR = "Your records couldn't be reached. Try closing and reopening the app.";
@@ -11,12 +16,24 @@ let dbPromise = null;
 
 // Runs when the database is first created, or when DB_VERSION goes up.
 // Each step only adds or converts. It must never delete records.
-function upgrade(db, oldVersion) {
+// Exported only so a test can run it on a separate test database.
+export function upgrade(db, oldVersion, transaction) {
   if (oldVersion < 1) {
     const store = db.createObjectStore(STORE, { keyPath: 'id' });
     store.createIndex('dateAdded', 'dateAdded');
   }
-  // Future versions go here, e.g. `if (oldVersion < 2) { ...convert... }`
+  if (oldVersion >= 1 && oldVersion < 2) {
+    // Convert each existing record: add list ("collection"), no shelves and
+    // no shop link. Every other field is kept exactly as it was.
+    const request = transaction.objectStore(STORE).openCursor();
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return;
+      cursor.update(upgradeRecord(cursor.value));
+      cursor.continue();
+    };
+  }
+  // Future versions go here, e.g. `if (oldVersion < 3) { ...convert... }`
 }
 
 function openDb() {
@@ -27,7 +44,7 @@ function openDb() {
       return;
     }
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = (event) => upgrade(request.result, event.oldVersion);
+    request.onupgradeneeded = (event) => upgrade(request.result, event.oldVersion, request.transaction);
     request.onsuccess = () => {
       const db = request.result;
       // If a newer version of the app opens in another tab, step aside.
@@ -62,13 +79,23 @@ async function withStore(mode, work) {
   }
 }
 
-export function getAllRecords() {
-  return withStore('readonly', (store) => store.getAll());
+// Records are brought up to date as they're read too, as a safety net.
+export async function getAllRecords() {
+  const records = await withStore('readonly', (store) => store.getAll());
+  return records.map(upgradeRecord);
 }
 
 export async function getRecord(id) {
   const record = await withStore('readonly', (store) => store.get(id));
-  return record ?? null;
+  return record ? upgradeRecord(record) : null;
+}
+
+// Saves several changed records in one go (all or nothing), for example
+// when a shelf is renamed.
+export function saveRecords(records) {
+  return withStore('readwrite', (store) => {
+    records.forEach((record) => store.put(record));
+  });
 }
 
 // Adds a new record or replaces the one with the same id.

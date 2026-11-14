@@ -19,11 +19,14 @@ test('new record keeps an existing id and date', () => {
 test('new record has every field, with blanks where nothing was given', () => {
   const record = createRecord({}, fixed);
   const fields = ['id', 'artist', 'title', 'year', 'label', 'format', 'vinylGrade', 'sleeveGrade',
-    'pricePaid', 'dateAdded', 'notes', 'barcode', 'discogsId', 'coverImage'];
+    'pricePaid', 'dateAdded', 'notes', 'barcode', 'discogsId', 'coverImage', 'list', 'shelves', 'shopLink'];
   assertEqual(Object.keys(record).join(','), fields.join(','));
   assertEqual(record.year, null);
   assertEqual(record.pricePaid, null);
   assertEqual(record.format, 'LP');
+  assertEqual(record.list, 'collection');
+  assertEqual(record.shelves.length, 0);
+  assertEqual(record.shopLink, '');
 });
 
 test('text is trimmed', () => {

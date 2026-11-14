@@ -1,6 +1,11 @@
 // What a record is: its fields, the allowed values, and checks.
 
+import { normaliseShelves } from './shelves.js';
+
 export const FORMATS = ['LP', '12"', '7"', 'Box set'];
+
+// Which list a record is on: owned, or wanted.
+export const LISTS = ['collection', 'wishlist'];
 
 // Goldmine grading scale, best to worst.
 export const GRADES = [
@@ -65,7 +70,31 @@ export function createRecord(input = {}, { now = new Date(), makeId = newId } = 
     barcode: text(input.barcode),
     discogsId: text(input.discogsId),
     coverImage: text(input.coverImage),
+    list: LISTS.includes(input.list) ? input.list : 'collection',
+    shelves: normaliseShelves(input.shelves),
+    shopLink: text(input.shopLink),
   };
+}
+
+// Brings a record saved by an older version of the app up to date by
+// adding any missing fields. Everything already there is kept as it is.
+export function upgradeRecord(record) {
+  return {
+    ...record,
+    list: LISTS.includes(record.list) ? record.list : 'collection',
+    shelves: normaliseShelves(record.shelves),
+    shopLink: text(record.shopLink),
+  };
+}
+
+// Only ordinary web addresses are allowed as shop links.
+export function isWebAddress(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
 }
 
 // Checks a record. Returns { valid, errors } where errors maps a field
@@ -94,6 +123,10 @@ export function validateRecord(record, { now = new Date() } = {}) {
 
   if (record.pricePaid !== null && !(Number.isFinite(record.pricePaid) && record.pricePaid >= 0)) {
     errors.pricePaid = 'Enter a price like 12.50.';
+  }
+
+  if (record.shopLink && !isWebAddress(record.shopLink)) {
+    errors.shopLink = 'Enter a web address starting with https://';
   }
 
   if (Number.isNaN(Date.parse(record.dateAdded))) {
