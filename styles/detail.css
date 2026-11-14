@@ -35,3 +35,9 @@
 }
 
 .record-detail .row-value { max-width: 65%; }
+
+.wish-tag {
+  margin: 10px 0 14px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}

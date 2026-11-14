@@ -8,6 +8,7 @@ import { checkSearchText } from '../utils/discogs-search.js';
 import { createElement } from '../utils/html.js';
 import { navigate } from '../utils/router.js';
 import { takeFlash } from '../utils/flash.js';
+import { getAddTarget, setAddTarget } from '../utils/record-draft.js';
 
 export function renderScanView({ startWithSearch = false } = {}) {
   const hasToken = getDiscogsToken() !== '';
@@ -19,6 +20,14 @@ export function renderScanView({ startWithSearch = false } = {}) {
         <span class="nav-title">Add a Record</span>
         <span class="nav-right"></span>
       </header>
+
+      <div class="list-switch add-target" role="radiogroup" aria-label="Add to">
+        ${['collection', 'wishlist'].map((value) => `
+          <label class="list-option">
+            <input type="radio" name="addTarget" value="${value}"${getAddTarget() === value ? ' checked' : ''}>
+            <span>${value === 'collection' ? 'Add to Collection' : 'Add to Wishlist'}</span>
+          </label>`).join('')}
+      </div>
 
       ${hasToken ? '' : `
         <div class="info-panel">
@@ -61,7 +70,7 @@ export function renderScanView({ startWithSearch = false } = {}) {
       <p class="matches-hint scan-search-hint">The catalogue number is usually on the spine or the label, for example PB 41447.</p>
 
       <div class="scan-footer">
-        <a class="pill-button" href="#/add">Add Without a Barcode</a>
+        <a class="pill-button" data-action="by-hand" href="${getAddTarget() === 'wishlist' ? '#/add/wishlist' : '#/add'}">Add Without a Barcode</a>
       </div>
     </div>`);
 
@@ -90,6 +99,14 @@ export function renderScanView({ startWithSearch = false } = {}) {
     showError('');
     input.blur();
     navigate(`/lookup/${result.digits}`);
+  });
+
+  // Which list scans and searches are added to.
+  node.querySelectorAll('input[name="addTarget"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      setAddTarget(radio.value);
+      node.querySelector('[data-action="by-hand"]').setAttribute('href', radio.value === 'wishlist' ? '#/add/wishlist' : '#/add');
+    });
   });
 
   // Search Discogs by words.

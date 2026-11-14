@@ -78,7 +78,7 @@ async function renderCurrent() {
 
   mountPoint.replaceChildren(node);
   window.scrollTo(0, node.initialScrollY ?? 0);
-  if (onChange) onChange(found.route);
+  if (onChange) onChange(found.route, node);
 }
 
 function errorScreen() {
@@ -92,7 +92,7 @@ function errorScreen() {
   return node;
 }
 
-// `options.onChange(route)` runs after each screen is shown.
+// `options.onChange(route, node)` runs after each screen is shown.
 export function startRouter(element, routeList, options = {}) {
   mountPoint = element;
   routes = routeList;
@@ -106,8 +106,9 @@ export function startRouter(element, routeList, options = {}) {
     if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     // Tabs swap screens without adding to Back history, like an iPhone app.
+    // data-replace links swap the current screen too (Back skips it).
     const isTab = link.hasAttribute('data-tab');
-    navigate(link.getAttribute('href').slice(1), { replace: isTab, fresh: isTab });
+    navigate(link.getAttribute('href').slice(1), { replace: isTab || link.hasAttribute('data-replace'), fresh: isTab });
   });
 
   renderCurrent();

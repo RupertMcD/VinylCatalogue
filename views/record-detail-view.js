@@ -21,17 +21,19 @@ function gradeText(code) {
   return code ? `${code} · ${gradeName(code)}` : '';
 }
 
-function navBar(rightHtml = '') {
+const listHome = (list) => (list === 'wishlist' ? '/wishlist' : '/collection');
+
+function navBar(rightHtml = '', list = 'collection') {
   return `
     <header class="nav-bar nav-bar--bordered">
-      <button type="button" class="nav-button nav-left" data-action="back">${icons.back}Collection</button>
+      <button type="button" class="nav-button nav-left" data-action="back">${icons.back}${list === 'wishlist' ? 'Wishlist' : 'Collection'}</button>
       <span class="nav-title"></span>
       <span class="nav-right">${rightHtml}</span>
     </header>`;
 }
 
-function wireBack(node) {
-  node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/collection'));
+function wireBack(node, list = 'collection') {
+  node.querySelector('[data-action="back"]').addEventListener('click', () => goBack(listHome(list)));
 }
 
 function notFound(message) {
@@ -56,13 +58,18 @@ export async function renderRecordDetailView(id) {
   }
   if (!record) return notFound('It may have been deleted.');
 
+  const wished = record.list === 'wishlist';
+
   const node = createElement(`
     <div class="record-detail">
-      ${navBar(`<a class="nav-button" href="#/edit/${encodeURIComponent(record.id)}">Edit</a>`)}
+      ${navBar(`<a class="nav-button" href="#/edit/${encodeURIComponent(record.id)}">Edit</a>`, record.list)}
       <div class="detail-hero">
         ${coverArt(record, 'detail-cover')}
         <h1 class="detail-title">${escapeHtml(record.title)}</h1>
         <p class="detail-artist">${escapeHtml(record.artist)}</p>
+        ${wished ? `
+          <p class="wish-tag">On your wishlist</p>
+          <a class="pill-button pill-button--primary" href="#/move/${encodeURIComponent(record.id)}" data-replace>Move to Collection</a>` : ''}
       </div>
 
       <h2 class="group-header">Release</h2>
@@ -72,6 +79,11 @@ export async function renderRecordDetailView(id) {
         ${row('Format', record.format)}
       </div>
 
+      ${wished ? `
+      <h2 class="group-header">Wanted</h2>
+      <div class="grouped">
+        ${row('Date added', formatDate(record.dateAdded))}
+      </div>` : `
       <h2 class="group-header">Condition</h2>
       <div class="grouped">
         ${row('Vinyl', gradeText(record.vinylGrade))}
@@ -82,7 +94,7 @@ export async function renderRecordDetailView(id) {
       <div class="grouped">
         ${row('Price paid', formatPrice(record.pricePaid))}
         ${row('Date added', formatDate(record.dateAdded))}
-      </div>
+      </div>`}
 
       <h2 class="group-header">Notes</h2>
       <div class="grouped">
@@ -102,7 +114,8 @@ export async function renderRecordDetailView(id) {
       </div>
     </div>`);
 
-  wireBack(node);
+  wireBack(node, record.list);
+  node.tab = record.list; // Highlights Collection or Wishlist in the tab bar.
 
   node.querySelector('[data-action="delete"]').addEventListener('click', async () => {
     const confirmed = await showConfirmSheet({
@@ -116,7 +129,7 @@ export async function renderRecordDetailView(id) {
       keepCoversOffline(); // Removes its saved cover.
       // Always to the Collection: going "back" could land on a barcode
       // lookup, which would offer to add the record again.
-      navigate('/collection', { replace: true });
+      navigate(listHome(record.list), { replace: true });
     } catch {
       const notice = node.querySelector('.notice');
       notice.textContent = "The record couldn't be deleted. Please try again.";

@@ -72,6 +72,7 @@ const APP_FILES = [
   'views/settings-view.js',
   'views/tab-bar.js',
   'views/toast.js',
+  'views/wishlist-view.js',
 ];
 // APP_FILES END
 

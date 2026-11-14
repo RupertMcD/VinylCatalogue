@@ -24,10 +24,11 @@ function gradeOptions(selected) {
     + GRADES.map((g) => option(g.code, `${g.code} – ${g.name}`, selected)).join('');
 }
 
-// One labelled row. `control` is the input or picker markup.
-function field(name, label, control) {
+// One labelled row. `control` is the input or picker markup. `only` shows
+// the row for just one list ('collection' or 'wishlist').
+function field(name, label, control, only = '') {
   return `
-    <label class="row field" data-field="${name}">
+    <label class="row field" data-field="${name}"${only ? ` data-only="${only}"` : ''}>
       <span class="field-label">${label}</span>
       ${control}
       <span class="field-error" id="${name}-error" hidden></span>
@@ -53,7 +54,10 @@ function notFound() {
   return node;
 }
 
-export async function renderRecordFormView(id = null) {
+// renderRecordFormView(id) edits a record; without an id it adds one.
+// Options: list ('wishlist' to add to the wishlist) and moveToCollection
+// (a wishlist record you've bought: it moves to the Collection on Save).
+export async function renderRecordFormView(id = null, { list: listOption = null, moveToCollection = false } = {}) {
   let existing = null;
   if (id) {
     try {
@@ -66,20 +70,42 @@ export async function renderRecordFormView(id = null) {
 
   // Details handed over by a barcode lookup, if any.
   const draft = existing ? null : takeRecordDraft();
-  const start = existing ?? createRecord(draft ?? {});
+  const moving = Boolean(existing && moveToCollection && existing.list === 'wishlist');
+  let start;
+  if (moving) {
+    start = { ...existing, list: 'collection', dateAdded: new Date().toISOString() };
+  } else if (existing) {
+    start = existing;
+  } else {
+    start = createRecord({ ...(draft ?? {}), list: (draft && draft.list) || listOption || 'collection' });
+  }
   let coverImage = start.coverImage;
   const backTo = existing ? `/record/${encodeURIComponent(existing.id)}` : '/';
+  const title = moving ? 'Move to Collection' : existing ? 'Edit Record' : 'New Record';
+  let infoText = '';
+  if (moving) infoText = 'Add the grades and the price you paid, then tap Save.';
+  else if (draft && draft.fromDiscogs) infoText = 'Filled in from Discogs. Check the details, then tap Save.';
+
+  const listSwitch = moving ? '' : `
+      <div class="list-switch" role="radiogroup" aria-label="Which list">
+        ${['collection', 'wishlist'].map((value) => `
+          <label class="list-option">
+            <input type="radio" name="list" value="${value}"${start.list === value ? ' checked' : ''}>
+            <span>${value === 'collection' ? 'Collection' : 'Wishlist'}</span>
+          </label>`).join('')}
+      </div>`;
 
   const node = createElement(`
     <form class="record-form" novalidate>
       <header class="nav-bar nav-bar--bordered">
         <button type="button" class="nav-button nav-left" data-action="cancel">Cancel</button>
-        <span class="nav-title">${existing ? 'Edit Record' : 'New Record'}</span>
+        <span class="nav-title">${title}</span>
         <button type="submit" class="nav-button nav-button--bold nav-right">Save</button>
       </header>
 
       <p class="notice form-notice" role="alert" hidden></p>
-      ${draft && draft.fromDiscogs ? `<p class="info-panel info-panel--left form-info">Filled in from Discogs. Check the details, add the grades and price, then tap Save.</p>` : ''}
+      ${moving ? '<input type="hidden" name="list" value="collection">' : listSwitch}
+      ${infoText ? `<p class="info-panel info-panel--left form-info">${infoText}</p>` : ''}
 
       <div class="form-cover">
         <span class="form-cover-preview"></span>
@@ -104,15 +130,16 @@ export async function renderRecordFormView(id = null) {
         ${field('format', 'Format', picker('format', FORMATS.map((f) => option(f, f, start.format)).join('')))}
       </div>
 
-      <h2 class="group-header">Condition</h2>
-      <div class="grouped">
+      <h2 class="group-header" data-only="collection">Condition</h2>
+      <div class="grouped" data-only="collection">
         ${field('vinylGrade', 'Vinyl', picker('vinylGrade', gradeOptions(start.vinylGrade)))}
         ${field('sleeveGrade', 'Sleeve', picker('sleeveGrade', gradeOptions(start.sleeveGrade)))}
       </div>
 
-      <h2 class="group-header">Purchase</h2>
+      <h2 class="group-header" data-purchase-header>Purchase</h2>
       <div class="grouped">
-        ${field('pricePaid', 'Price paid', `<span class="price-input"><span aria-hidden="true">£</span>${textInput('pricePaid', Number.isFinite(start.pricePaid) ? start.pricePaid.toFixed(2) : '', 'inputmode="decimal" placeholder="0.00" autocomplete="off"')}</span>`)}
+        ${field('shopLink', 'Shop link', textInput('shopLink', start.shopLink, 'type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…"'), 'wishlist')}
+        ${field('pricePaid', 'Price paid', `<span class="price-input"><span aria-hidden="true">£</span>${textInput('pricePaid', Number.isFinite(start.pricePaid) ? start.pricePaid.toFixed(2) : '', 'inputmode="decimal" placeholder="0.00" autocomplete="off"')}</span>`, 'collection')}
         ${field('dateAdded', 'Date added', textInput('dateAdded', toDateInputValue(start.dateAdded), 'type="date"'))}
       </div>
 
@@ -141,9 +168,22 @@ export async function renderRecordFormView(id = null) {
     if (message) notice.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
+  // Shelves are chosen on their own sheet, so they're kept here.
+  let shelves = start.shelves || [];
+
   function currentValues() {
-    return { ...Object.fromEntries(new FormData(form)), coverImage };
+    return { ...Object.fromEntries(new FormData(form)), coverImage, shelves };
   }
+
+  // Wishlist records hide the grades and price paid, and show a shop link.
+  function updateForList() {
+    const list = form.elements.list.value || 'collection';
+    node.querySelectorAll('[data-only]').forEach((element) => {
+      element.hidden = element.dataset.only !== list;
+    });
+    node.querySelector('[data-purchase-header]').textContent = list === 'wishlist' ? 'Wanted' : 'Purchase';
+  }
+  node.querySelectorAll('input[name="list"]').forEach((radio) => radio.addEventListener('change', updateForList));
 
   function renderCover() {
     const values = currentValues();
@@ -153,8 +193,8 @@ export async function renderRecordFormView(id = null) {
   }
 
   const initialValues = JSON.stringify(currentValues());
-  // A looked-up record counts as unsaved work, so Cancel asks first.
-  const hasChanges = () => Boolean(draft) || JSON.stringify(currentValues()) !== initialValues;
+  // A looked-up or moving record counts as unsaved work, so Cancel asks first.
+  const hasChanges = () => Boolean(draft) || moving || JSON.stringify(currentValues()) !== initialValues;
 
   function showErrors(errors) {
     node.querySelectorAll('.field[data-field]').forEach((row) => {
@@ -224,24 +264,31 @@ export async function renderRecordFormView(id = null) {
       return;
     }
 
+    if (moving) {
+      // Show the record, now in the Collection, wherever the move started.
+      navigate(`/record/${encodeURIComponent(record.id)}`, { replace: true, fresh: true });
+      showToast('Moved to Collection');
+      return;
+    }
     if (existing) {
       goBack(`/record/${encodeURIComponent(record.id)}`);
       showToast('Changes saved');
       return;
     }
 
-    showToast(`Added: ${record.title}`);
+    showToast(record.list === 'wishlist' ? `Added to Wishlist: ${record.title}` : `Added: ${record.title}`);
     if (draft) {
       // Scanned or searched: back to the Add tab, with the camera waiting
       // so it can't re-scan the record still in your hand.
       setFlash({ justAdded: record.title });
       navigate('/', { replace: true, fresh: true });
     } else {
-      // Added by hand from the Collection: back there.
-      navigate('/collection', { replace: true, fresh: true });
+      // Added by hand: back to that list.
+      navigate(record.list === 'wishlist' ? '/wishlist' : '/collection', { replace: true, fresh: true });
     }
   });
 
+  updateForList();
   renderCover();
   return node;
 }

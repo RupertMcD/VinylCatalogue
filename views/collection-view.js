@@ -1,4 +1,5 @@
-// The Collection screen: search, a Grid/List switch and every record.
+// The Collection screen (and the Wishlist, which uses the same screen):
+// search, a Grid/List switch, sorting and every record on that list.
 
 import { getAllRecords, addRecordsIfMissing } from '../services/record-store.js';
 import { searchRecords, sortRecords, SORT_OPTIONS } from '../utils/search.js';
@@ -8,28 +9,35 @@ import { isDevMode } from '../utils/dev-mode.js';
 import { createSampleRecords } from '../models/sample-records.js';
 import { coverArt } from './cover-art.js';
 
-const LAYOUT_KEY = 'collection-layout';
-const SORT_KEY = 'collection-sort';
+// What differs between the two lists.
+const LISTS = {
+  collection: {
+    title: 'Collection',
+    addHref: '#/add',
+    defaultSort: 'artist',
+    emptyTitle: 'No records yet',
+    emptyText: 'Add your first record to start your collection.',
+  },
+  wishlist: {
+    title: 'Wishlist',
+    addHref: '#/add/wishlist',
+    defaultSort: 'recent',
+    emptyTitle: 'Nothing on your wishlist',
+    emptyText: 'Records you want go here. On the Add tab, choose Wishlist before you scan or search.',
+  },
+};
 
 // Kept between visits so search and scroll position survive opening a record.
-const state = { query: '', scrollY: 0 };
+const states = { collection: { query: '', scrollY: 0 }, wishlist: { query: '', scrollY: 0 } };
 
-function loadLayout() {
-  try { return localStorage.getItem(LAYOUT_KEY) === 'list' ? 'list' : 'grid'; } catch { return 'grid'; }
-}
-
-function saveLayout(layout) {
-  try { localStorage.setItem(LAYOUT_KEY, layout); } catch { /* not essential */ }
-}
-
-function loadSort() {
+function load(key, fallback, allowed) {
   let saved = '';
-  try { saved = localStorage.getItem(SORT_KEY) || ''; } catch { /* not essential */ }
-  return SORT_OPTIONS.some((option) => option.value === saved) ? saved : 'artist';
+  try { saved = localStorage.getItem(key) || ''; } catch { /* not essential */ }
+  return allowed.includes(saved) ? saved : fallback;
 }
 
-function saveSort(sort) {
-  try { localStorage.setItem(SORT_KEY, sort); } catch { /* not essential */ }
+function save(key, value) {
+  try { localStorage.setItem(key, value); } catch { /* not essential */ }
 }
 
 const sortLabel = (value) => (SORT_OPTIONS.find((option) => option.value === value) || SORT_OPTIONS[0]).label;
@@ -69,27 +77,33 @@ const devToolsHtml = `
     <p class="dev-status" role="status"></p>
   </section>`;
 
-export async function renderCollectionView() {
+export async function renderCollectionView({ list = 'collection' } = {}) {
+  const settings = LISTS[list];
+  const state = states[list];
+  const layoutKey = `${list}-layout`;
+  const sortKey = `${list}-sort`;
+  const onThisList = (all) => all.filter((record) => record.list === list);
+
   let records = [];
   let loadError = '';
   try {
-    records = sortRecords(await getAllRecords());
+    records = sortRecords(onThisList(await getAllRecords()));
   } catch (error) {
     loadError = error.message;
   }
-  let layout = loadLayout();
-  let sort = loadSort();
+  let layout = load(layoutKey, list === 'wishlist' ? 'list' : 'grid', ['grid', 'list']);
+  let sort = load(sortKey, settings.defaultSort, SORT_OPTIONS.map((option) => option.value));
 
   const node = createElement(`
-    <div class="collection">
+    <div class="collection collection--${list}">
       <header class="nav-bar">
         <span class="nav-left"></span>
         <span class="nav-title"></span>
         <span class="nav-right nav-actions">
-          <a class="nav-button" href="#/add" aria-label="Add record">${icons.plus}</a>
+          <a class="nav-button" href="${settings.addHref}" aria-label="Add record by hand">${icons.plus}</a>
         </span>
       </header>
-      <h1 class="large-title">Collection</h1>
+      <h1 class="large-title">${settings.title}</h1>
       <div class="collection-controls">
         <div class="search-field">
           ${icons.search}
@@ -114,7 +128,7 @@ export async function renderCollectionView() {
       </div>
       <p class="notice" role="alert" hidden></p>
       <div class="results"></div>
-      ${isDevMode ? devToolsHtml : ''}
+      ${isDevMode && list === 'collection' ? devToolsHtml : ''}
     </div>`);
 
   const controls = node.querySelector('.collection-controls');
@@ -144,9 +158,9 @@ export async function renderCollectionView() {
     if (records.length === 0) {
       results.innerHTML = loadError ? '' : `
         <div class="empty-state">
-          <h2>No records yet</h2>
-          <p>Add your first record to start your collection.</p>
-          <a class="pill-button" href="#/add">Add Record</a>
+          <h2>${settings.emptyTitle}</h2>
+          <p>${settings.emptyText}</p>
+          <a class="pill-button" href="${list === 'wishlist' ? '#/' : settings.addHref}">${list === 'wishlist' ? 'Go to Add' : 'Add Record'}</a>
         </div>`;
       return;
     }
@@ -168,7 +182,7 @@ export async function renderCollectionView() {
 
   sortSelect.addEventListener('change', () => {
     sort = sortSelect.value;
-    saveSort(sort);
+    save(sortKey, sort);
     renderResults();
   });
 
@@ -188,7 +202,7 @@ export async function renderCollectionView() {
   node.querySelectorAll('[data-layout]').forEach((button) => {
     button.addEventListener('click', () => {
       layout = button.dataset.layout;
-      saveLayout(layout);
+      save(layoutKey, layout);
       renderResults();
     });
   });
@@ -205,7 +219,7 @@ export async function renderCollectionView() {
       loadSamplesButton.disabled = true;
       try {
         const added = await addRecordsIfMissing(createSampleRecords());
-        records = sortRecords(await getAllRecords());
+        records = sortRecords(onThisList(await getAllRecords()));
         status.textContent = added ? `Added ${added} sample records.` : 'The sample records are already here.';
         showNotice('');
       } catch (error) {

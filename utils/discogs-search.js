@@ -18,10 +18,18 @@ export function checkSearchText(text) {
   return { valid: true, text: cleaned, error: '' };
 }
 
-// Adds owned: true to matches whose Discogs release is already in the collection.
+// Marks matches whose Discogs release you already have: owned (in the
+// collection) or wished (on the wishlist).
 export function markOwned(matches, records) {
-  const ownedIds = new Set(
-    (records || []).map((record) => String(record.discogsId || '').trim()).filter(Boolean),
-  );
-  return matches.map((match) => ({ ...match, owned: ownedIds.has(String(match.discogsId)) }));
+  const idsOn = (list) => new Set((records || [])
+    .filter((record) => (record.list || 'collection') === list)
+    .map((record) => String(record.discogsId || '').trim())
+    .filter(Boolean));
+  const owned = idsOn('collection');
+  const wished = idsOn('wishlist');
+  return matches.map((match) => ({
+    ...match,
+    owned: owned.has(String(match.discogsId)),
+    wished: wished.has(String(match.discogsId)),
+  }));
 }

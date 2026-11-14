@@ -12,6 +12,7 @@ import { requestPersistentStorage } from './utils/persistent-storage.js';
 import { keepCoversOffline } from './services/cover-cache.js';
 import { createTabBar, showTab } from './views/tab-bar.js';
 import { renderImportPreviewView } from './views/import-preview-view.js';
+import { renderWishlistView } from './views/wishlist-view.js';
 
 // `tab` is the tab bar tab each screen belongs to; no tab hides the bar.
 // The app opens on "/", the Add tab, with the camera ready.
@@ -22,16 +23,20 @@ const routes = [
   { path: '/lookup/:barcode', tab: 'add', render: ({ barcode }) => renderDiscogsMatchesView({ barcode }) },
   { path: '/search/:query', tab: 'add', render: ({ query }) => renderDiscogsMatchesView({ query }) },
   { path: '/collection', tab: 'collection', render: () => renderCollectionView() },
+  { path: '/wishlist', tab: 'wishlist', render: () => renderWishlistView() },
+  // A record's screen sets its own tab (Collection or Wishlist).
   { path: '/record/:id', tab: 'collection', render: ({ id }) => renderRecordDetailView(id) },
   { path: '/settings', tab: 'settings', render: () => renderSettingsView() },
   { path: '/add', tab: null, render: () => renderRecordFormView() },
+  { path: '/add/wishlist', tab: null, render: () => renderRecordFormView(null, { list: 'wishlist' }) },
+  { path: '/move/:id', tab: null, render: ({ id }) => renderRecordFormView(id, { moveToCollection: true }) },
   { path: '/edit/:id', tab: null, render: ({ id }) => renderRecordFormView(id) },
   { path: '/import', tab: null, render: () => renderImportPreviewView() },
 ];
 
 createTabBar();
 startRouter(document.getElementById('app'), routes, {
-  onChange: (route) => showTab(route.tab),
+  onChange: (route, node) => showTab(node.tab !== undefined ? node.tab : route.tab),
 });
 
 // Offline support and permanent storage. Neither blocks the app from starting.

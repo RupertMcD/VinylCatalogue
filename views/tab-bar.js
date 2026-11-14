@@ -1,4 +1,4 @@
-// The iPhone-style tab bar at the bottom: Add, Collection and Settings.
+// The iPhone-style tab bar at the bottom: Add, Collection, Wishlist and Settings.
 // Each screen's route says which tab it belongs to (or none, to hide it).
 
 import { icons } from '../utils/icons.js';
@@ -6,6 +6,7 @@ import { icons } from '../utils/icons.js';
 const TABS = [
   { id: 'add', label: 'Add', href: '#/', icon: icons.barcode },
   { id: 'collection', label: 'Collection', href: '#/collection', icon: icons.disc },
+  { id: 'wishlist', label: 'Wishlist', href: '#/wishlist', icon: icons.heart },
   { id: 'settings', label: 'Settings', href: '#/settings', icon: icons.settings },
 ];
 

@@ -7,7 +7,7 @@ import { searchByBarcode, searchDiscogs, getReleaseDetails } from '../services/d
 import { getAllRecords } from '../services/record-store.js';
 import { checkBarcode, sameBarcode } from '../utils/barcode.js';
 import { checkSearchText, markOwned } from '../utils/discogs-search.js';
-import { setRecordDraft } from '../utils/record-draft.js';
+import { setRecordDraft, getAddTarget } from '../utils/record-draft.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 import { icons } from '../utils/icons.js';
 import { navigate, goBack } from '../utils/router.js';
@@ -24,21 +24,26 @@ function matchRow(match, index) {
         ${details ? `<span class="list-sub match-details">${escapeHtml(details)}</span>` : ''}
         ${match.formatText ? `<span class="list-sub match-details">${escapeHtml(match.formatText)}</span>` : ''}
         ${match.owned ? '<span class="owned-tag">In your collection</span>' : ''}
+        ${match.wished ? '<span class="owned-tag">On your wishlist</span>' : ''}
       </span>
       <span class="match-status">${icons.chevron}</span>
     </button>`;
 }
 
 function ownedNotice(owned) {
-  if (owned.length === 0) return '';
-  const first = owned[0];
-  const name = `${first.artist} – ${first.title}`;
-  const link = `<a href="#/record/${encodeURIComponent(first.id)}">${escapeHtml(name)}</a>`;
-  const more = owned.length > 1 ? ` and ${owned.length - 1} more` : '';
-  return `
-    <div class="info-panel info-panel--left">
-      <p><strong>Already in your collection:</strong> ${link}${more}. You can still add another copy.</p>
-    </div>`;
+  const notes = [];
+  const owns = owned.filter((record) => record.list !== 'wishlist');
+  const wishes = owned.filter((record) => record.list === 'wishlist');
+  const link = (record) => `<a href="#/record/${encodeURIComponent(record.id)}">${escapeHtml(`${record.artist} – ${record.title}`)}</a>`;
+  const more = (list) => (list.length > 1 ? ` and ${list.length - 1} more` : '');
+  if (owns.length > 0) {
+    notes.push(`<p><strong>Already in your collection:</strong> ${link(owns[0])}${more(owns)}. You can still add another copy.</p>`);
+  }
+  if (wishes.length > 0) {
+    notes.push(`<p><strong>On your wishlist:</strong> ${link(wishes[0])}${more(wishes)}.</p>
+      <p><a class="pill-button pill-button--primary" href="#/move/${encodeURIComponent(wishes[0].id)}">Bought It? Move to Collection</a></p>`);
+  }
+  return notes.length ? `<div class="info-panel info-panel--left">${notes.join('')}</div>` : '';
 }
 
 async function loadRecords() {
@@ -72,7 +77,7 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null } 
   node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/'));
 
   function addByHand() {
-    setRecordDraft(byBarcode ? { barcode: digits } : {});
+    setRecordDraft({ ...(byBarcode ? { barcode: digits } : {}), list: getAddTarget() });
     navigate('/add');
   }
 
@@ -102,7 +107,7 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null } 
     try {
       const fields = await getReleaseDetails(match.discogsId);
       if (!node.isConnected) return true; // They left this screen while it loaded.
-      setRecordDraft({ ...fields, barcode: digits, fromDiscogs: true });
+      setRecordDraft({ ...fields, barcode: digits, fromDiscogs: true, list: getAddTarget() });
       navigate('/add', { replace });
       return true;
     } catch (error) {
@@ -117,11 +122,12 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null } 
     const hint = total > matches.length
       ? `Showing the first ${matches.length} of ${total}. Add a word or two – the label, year or catalogue number – to narrow it down.`
       : 'Pick the one that matches your copy. The catalogue number and label on the sleeve help.';
+    const target = getAddTarget() === 'wishlist' ? ' It will go on your wishlist.' : '';
     body.innerHTML = `
       ${ownedNotice(owned)}
       <p class="notice" role="alert" hidden></p>
       <h2 class="group-header group-header--first">${heading}</h2>
-      <p class="matches-hint">${escapeHtml(hint)}</p>
+      <p class="matches-hint">${escapeHtml(hint + target)}</p>
       <div class="record-list">${matches.map(matchRow).join('')}</div>
       <div class="scan-footer">
         <button type="button" class="pill-button" data-action="by-hand">None of These – Add by Hand</button>
@@ -174,7 +180,7 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null } 
     matches = markOwned(matches, records);
     // Only jump straight to the form the first time, never when coming Back.
     const seenBefore = Boolean(history.state && history.state.listed);
-    if (matches.length === 1 && owned.length === 0 && !matches[0].owned && !seenBefore) {
+    if (matches.length === 1 && owned.length === 0 && !matches[0].owned && !matches[0].wished && !seenBefore) {
       showLoading('Found it. Getting the details…');
       const result = await choose(matches[0], { replace: true });
       if (result === true) return;

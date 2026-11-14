@@ -23,3 +23,10 @@ test('search results: records already owned are marked', () => {
   assertDeepEqual(markOwned(matches, records).map((m) => m.owned), [false, true, true]);
   assertDeepEqual(markOwned(matches, []).map((m) => m.owned), [false, false, false]);
 });
+
+test('search results: records on the wishlist are marked separately', () => {
+  const matches = [{ discogsId: '1' }, { discogsId: '2' }];
+  const records = [{ discogsId: '1', list: 'wishlist' }, { discogsId: '2', list: 'collection' }];
+  const marked = markOwned(matches, records);
+  assertDeepEqual(marked.map((m) => [m.owned, m.wished]), [[false, true], [true, false]]);
+});

@@ -57,7 +57,7 @@ export async function renderSettingsView() {
       <h2 class="group-header">Backup</h2>
       <div class="grouped">
         <div class="row">
-          <span class="row-label">Collection</span>
+          <span class="row-label">Records</span>
           <span class="row-value" data-count></span>
         </div>
         <div class="row">
@@ -169,7 +169,9 @@ export async function renderSettingsView() {
   }
 
   function refreshBackup() {
-    node.querySelector('[data-count]').textContent = loadError ? 'Not available' : recordCount(records.length);
+    const wished = records.filter((record) => record.list === 'wishlist').length;
+    node.querySelector('[data-count]').textContent = loadError ? 'Not available'
+      : `${recordCount(records.length - wished)}${wished ? ` + ${wished} on wishlist` : ''}`;
     const last = getLastExport();
     node.querySelector('[data-last-export]').textContent = last ? formatDate(last) : 'Never';
     exportButton.disabled = Boolean(loadError) || records.length === 0;

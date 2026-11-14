@@ -101,3 +101,46 @@
   line-height: 1.35;
   resize: vertical;
 }
+
+/* Rows shown for only one list are hidden for the other. */
+.record-form [data-only][hidden] { display: none; }
+
+/* Collection | Wishlist switch at the top of the form. */
+.list-switch {
+  display: flex;
+  margin: 16px var(--gutter) 0;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--fill);
+}
+
+.list-option {
+  position: relative;
+  flex: 1;
+  cursor: pointer;
+}
+
+.list-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.list-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  border-radius: 7px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.list-option input:checked + span {
+  background: var(--segment-selected);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.list-option input:focus-visible + span { outline: 2px solid var(--accent); }
