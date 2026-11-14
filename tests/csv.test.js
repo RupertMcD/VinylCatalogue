@@ -16,7 +16,7 @@ test('csv: reading quoted commas, quotes and line breaks', () => {
 });
 
 test('csv: Excel\'s BOM, Windows and old Mac line endings are handled', () => {
-  assertDeepEqual(parseCsv('﻿a,b\r\n1,2\r3,4\n'), [['a', 'b'], ['1', '2'], ['3', '4']]);
+  assertDeepEqual(parseCsv('\uFEFFa,b\r\n1,2\r3,4\n'), [['a', 'b'], ['1', '2'], ['3', '4']]);
 });
 
 test('csv: blank lines are skipped and empty values kept', () => {

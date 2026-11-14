@@ -1,0 +1,53 @@
+/* Styles for the Import preview. */
+
+.import .info-panel p { margin-bottom: 6px; }
+
+.import-actions {
+  margin: 0 var(--gutter) 24px;
+  text-align: center;
+}
+
+.import-button {
+  min-width: 220px;
+  background: var(--accent);
+  color: #fff;
+}
+
+.import-section { margin: 0; }
+
+.import-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.import-summary::-webkit-details-marker { display: none; }
+
+/* A small arrow that turns when the section opens. */
+.import-summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s;
+}
+
+.import-section[open] > .import-summary::before { transform: rotate(45deg); }
+
+.import-row { padding-top: 8px; padding-bottom: 8px; }
+
+.import-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.import-title { overflow-wrap: anywhere; }
+.import-sub { font-size: 14px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.import-problem { color: var(--danger); }

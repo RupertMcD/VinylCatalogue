@@ -17,7 +17,7 @@ export function toCsv(rows) {
 // Returns an array of rows (arrays of strings). Blank lines are skipped.
 // Throws an Error with a friendly message if a quote is never closed.
 export function parseCsv(text) {
-  const source = String(text ?? '').replace(/^﻿/, ''); // Excel's "BOM" marker
+  const source = String(text ?? '').replace(/^\uFEFF/, ''); // Excel's "BOM" marker
   const rows = [];
   let row = [];
   let value = '';

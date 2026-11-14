@@ -6,11 +6,13 @@ import {
 } from '../services/settings-store.js';
 import { checkDiscogsToken } from '../services/discogs-service.js';
 import { getAllRecords } from '../services/record-store.js';
-import { recordsToCsv, exportFileName } from '../models/record-csv.js';
+import { recordsToCsv, exportFileName, readRecordsCsv, planImport } from '../models/record-csv.js';
 import { sortRecords } from '../utils/search.js';
 import { formatDate } from '../utils/format.js';
 import { shareOrDownloadFile } from '../utils/file-share.js';
 import { createElement, escapeHtml } from '../utils/html.js';
+import { navigate } from '../utils/router.js';
+import { setPendingImport } from './import-preview-view.js';
 
 const recordCount = (n) => (n === 1 ? '1 record' : `${n} records`);
 
@@ -63,11 +65,16 @@ export async function renderSettingsView() {
           <span class="row-value" data-last-export></span>
         </div>
         <button type="button" class="row row-button" data-action="export">Export to CSV</button>
+        <label class="row row-button" data-action="import">
+          Import from CSV
+          <input type="file" accept=".csv,text/csv,text/comma-separated-values" class="visually-hidden" data-action="choose-csv">
+        </label>
       </div>
       <p class="settings-message" data-backup-message role="status" hidden></p>
       <div class="group-footer">
         <p>Your records are kept only on this phone. Deleting the app from your Home Screen or clearing Safari's website data deletes them.</p>
         <p>Export after each cataloguing session and choose <strong>Save to Files</strong>, ideally in iCloud Drive. The file opens in Numbers or Excel, but keep the original as your backup.</p>
+        <p>Import shows you what it will add first. It skips records already in your collection and never changes them.</p>
       </div>
     </div>`);
 
@@ -183,6 +190,40 @@ export async function renderSettingsView() {
     showBackupMessage(result === 'shared'
       ? `Exported ${recordCount(records.length)}. Keep the file somewhere safe.`
       : `Exported ${recordCount(records.length)} to your Downloads.`);
+  });
+
+  // Import: read the chosen file and show the preview. Nothing is added yet.
+  const MAX_FILE_SIZE = 50 * 1024 * 1024;
+  node.querySelector('[data-action="choose-csv"]').addEventListener('change', async (event) => {
+    const chosen = event.target.files[0];
+    event.target.value = '';
+    if (!chosen) return;
+    showBackupMessage('');
+    if (chosen.size > MAX_FILE_SIZE) {
+      showBackupMessage("That file is too big to be a Vinyl Catalogue backup.", true);
+      return;
+    }
+    let text;
+    try {
+      text = await chosen.text();
+    } catch {
+      showBackupMessage("That file couldn't be opened. Please try again.", true);
+      return;
+    }
+    const result = readRecordsCsv(text);
+    if (result.fileError) {
+      showBackupMessage(result.fileError, true);
+      return;
+    }
+    let current;
+    try {
+      current = await getAllRecords();
+    } catch (error) {
+      showBackupMessage(error.message, true);
+      return;
+    }
+    setPendingImport(planImport(result.rows, current), chosen.name);
+    navigate('/import');
   });
 
   if (loadError) showBackupMessage(loadError, true);

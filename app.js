@@ -11,6 +11,7 @@ import { setUpServiceWorker } from './utils/service-worker-setup.js';
 import { requestPersistentStorage } from './utils/persistent-storage.js';
 import { keepCoversOffline } from './services/cover-cache.js';
 import { createTabBar, showTab } from './views/tab-bar.js';
+import { renderImportPreviewView } from './views/import-preview-view.js';
 
 // `tab` is the tab bar tab each screen belongs to; no tab hides the bar.
 // The app opens on "/", the Add tab, with the camera ready.
@@ -25,6 +26,7 @@ const routes = [
   { path: '/settings', tab: 'settings', render: () => renderSettingsView() },
   { path: '/add', tab: null, render: () => renderRecordFormView() },
   { path: '/edit/:id', tab: null, render: ({ id }) => renderRecordFormView(id) },
+  { path: '/import', tab: null, render: () => renderImportPreviewView() },
 ];
 
 createTabBar();
