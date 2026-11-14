@@ -84,7 +84,7 @@ export async function renderSettingsView() {
       <div class="group-footer">
         <p>Your records are kept only on this phone. Deleting the app from your Home Screen or clearing Safari's website data deletes them.</p>
         <p>Export after each cataloguing session and choose <strong>Save to Files</strong>, ideally in iCloud Drive. The file opens in Numbers or Excel, but keep the original as your backup.</p>
-        <p>Import shows you what it will add first. It skips records already in your collection and never changes them.</p>
+        <p>Import shows you what it will add first. It skips records already in the app and never changes them.</p>
       </div>
     </div>`);
 

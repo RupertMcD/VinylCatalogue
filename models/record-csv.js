@@ -2,12 +2,13 @@
 // One row per record, one column per field.
 
 import { toCsv, parseCsv } from '../utils/csv.js';
-import { createRecord, validateRecord, FORMATS, GRADE_CODES } from './record.js';
+import { createRecord, validateRecord, FORMATS, GRADE_CODES, LISTS } from './record.js';
 import { normaliseText } from '../utils/search.js';
 
 export const CSV_COLUMNS = [
   'id', 'artist', 'title', 'year', 'label', 'format', 'vinylGrade', 'sleeveGrade',
   'pricePaid', 'dateAdded', 'notes', 'barcode', 'discogsId', 'coverImage',
+  'list', 'shelves', 'shopLink',
 ];
 
 // Spreadsheets treat text starting with = + - @ as a formula, which can be
@@ -27,6 +28,8 @@ function exportValue(record, column) {
   const value = record[column];
   if (column === 'year') return Number.isInteger(value) ? String(value) : '';
   if (column === 'pricePaid') return Number.isFinite(value) ? value.toFixed(2) : '';
+  // Shelves go in one cell, like "Favourites; Jazz".
+  if (column === 'shelves') return protectCell((value || []).join('; '));
   return protectCell(value == null ? '' : String(value));
 }
 
@@ -62,6 +65,9 @@ const HEADER_ALIASES = {
   barcode: 'barcode',
   discogsid: 'discogsId', discogs: 'discogsId',
   coverimage: 'coverImage', cover: 'coverImage',
+  list: 'list',
+  shelves: 'shelves', shelf: 'shelves',
+  shoplink: 'shopLink', shop: 'shopLink',
 };
 
 export function headerToField(header) {
@@ -86,6 +92,7 @@ function importMessage(field, raw) {
     case 'sleeveGrade': return `The sleeve grade ${value} isn't on the Goldmine scale (${GRADE_LIST}).`;
     case 'pricePaid': return `The price ${value} isn't a price like 12.50.`;
     case 'dateAdded': return `The date added ${value} isn't a date.`;
+    case 'shopLink': return `The shop link ${value} isn't a web address starting with https://.`;
     default: return `The ${field} ${value} isn't valid.`;
   }
 }
@@ -120,6 +127,13 @@ export function readRecordsCsv(text, options = {}) {
       values.format = matchFrom(FORMATS, values.format);
       if (!FORMATS.includes(values.format)) {
         extraErrors.push(`Format “${values.format}” isn't one of ${FORMATS.join(', ')}.`);
+      }
+    }
+    // Files from before the wishlist have no list column: they're all collection.
+    if (values.list) {
+      values.list = matchFrom(LISTS, values.list);
+      if (!LISTS.includes(values.list)) {
+        extraErrors.push(`The list “${values.list}” isn't collection or wishlist.`);
       }
     }
     for (const grade of ['vinylGrade', 'sleeveGrade']) {

@@ -83,7 +83,7 @@ export function renderImportPreviewView() {
       <div class="info-panel info-panel--left">
         <p><strong>${escapeHtml(fileName)}</strong></p>
         <p>${adding > 0 ? `${plural(adding, 'record', 'records')} will be added.` : 'There is nothing new to add.'}
-          ${plan.alreadyHave.length > 0 ? `${plural(plan.alreadyHave.length, 'is', 'are')} already in your collection and will be skipped.` : ''}
+          ${plan.alreadyHave.length > 0 ? `${plural(plan.alreadyHave.length, 'is', 'are')} already in the app and will be skipped.` : ''}
           ${plan.problems.length > 0 ? `${plural(plan.problems.length, 'row has', 'rows have')} problems and will be skipped.` : ''}
           Your existing records won't be changed.</p>
       </div>
@@ -99,7 +99,7 @@ export function renderImportPreviewView() {
 
       ${section('To add', adding, plan.toAdd.map(recordLine).join(''), { open: adding <= 50 })}
       ${section('Problems – skipped', plan.problems.length, plan.problems.map(problemLine).join(''))}
-      ${section('Already in your collection – skipped', plan.alreadyHave.length,
+      ${section('Already in the app – skipped', plan.alreadyHave.length,
         plan.alreadyHave.map((item) => recordLine(item.record)).join(''), { open: false })}
     </div>`);
 

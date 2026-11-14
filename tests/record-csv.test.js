@@ -32,6 +32,7 @@ test('export: one row per record, with every field', () => {
     'r1', 'Björk', 'Debut', '1993', 'One Little Indian', 'LP', 'VG+', 'NM', '12.50',
     '2026-11-14T10:30:00.000Z', 'Bought at "Rough Trade", gatefold\nSecond line',
     '5016958997028', '12345', 'https://i.discogs.com/example.jpg',
+    'collection', '', '',
   ]);
   assertEqual(rows[2][3], '', 'no year');
   assertEqual(rows[2][8], '', 'no price');
@@ -67,4 +68,10 @@ test('export: photos picked on the phone are kept whole', () => {
   const photo = `data:image/jpeg;base64,${'A'.repeat(50000)}`;
   const rows = parseCsv(recordsToCsv([{ ...record, coverImage: photo }]));
   assert(rows[1][13] === photo, 'photo should round-trip unchanged');
+});
+
+test('export: list, shelves and shop link are included', () => {
+  const wish = { ...record, list: 'wishlist', shelves: ['Favourites', 'Jazz'], shopLink: 'https://www.juno.co.uk/products/x/' };
+  const rows = parseCsv(recordsToCsv([wish]));
+  assertDeepEqual(rows[1].slice(14), ['wishlist', 'Favourites; Jazz', 'https://www.juno.co.uk/products/x/']);
 });

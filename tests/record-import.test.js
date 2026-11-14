@@ -89,3 +89,31 @@ test('import: column names are matched loosely', () => {
   assertEqual(headerToField('Genre'), null);
   assertEqual(headerToField('PRICE'), 'pricePaid');
 });
+
+test('import: list, shelves and shop link come back from an export', () => {
+  const records = [
+    createRecord({ id: 'w1', artist: 'Nico', title: 'Chelsea Girl', list: 'wishlist', shopLink: 'https://www.juno.co.uk/x/', dateAdded: '2026-11-03T10:00:00.000Z' }),
+    createRecord({ id: 'c1', artist: 'Can', title: 'Tago Mago', shelves: ['Krautrock', 'Favourites'], dateAdded: '2026-11-04T10:00:00.000Z' }),
+  ];
+  const { rows } = readRecordsCsv(recordsToCsv(records), options);
+  assertDeepEqual(rows.map((row) => row.record), records);
+});
+
+test('import: an older backup without the new columns imports as collection', () => {
+  const old = 'id,artist,title,year,label,format,vinylGrade,sleeveGrade,pricePaid,dateAdded,notes,barcode,discogsId,coverImage\r\n'
+    + 'o1,Björk,Debut,1993,,LP,,,,2026-11-01T10:00:00.000Z,,,,\r\n';
+  const { record, errors } = readRecordsCsv(old, options).rows[0];
+  assertDeepEqual(errors, []);
+  assertEqual(record.list, 'collection');
+  assertDeepEqual(record.shelves, []);
+  assertEqual(record.shopLink, '');
+});
+
+test('import: list and shelves are read loosely, and bad values are flagged', () => {
+  const csv = 'artist,title,list,shelf,shop\nA,One,Wishlist,jazz; Soul,\nA,Two,owned,,\nA,Three,,,javascript:alert(1)\n';
+  const { rows } = readRecordsCsv(csv, options);
+  assertEqual(rows[0].record.list, 'wishlist');
+  assertDeepEqual(rows[0].record.shelves, ['jazz', 'Soul']);
+  assert(rows[1].errors[0].includes('owned'), rows[1].errors[0]);
+  assert(rows[2].errors[0].includes('shop link'), rows[2].errors[0]);
+});
