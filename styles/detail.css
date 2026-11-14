@@ -1,1 +1,37 @@
-/* Styles for the detail screen. */
+/* Styles for the Record screen. */
+
+.detail-hero {
+  margin: 20px var(--gutter) 28px;
+  text-align: center;
+}
+
+.detail-cover {
+  width: min(100%, 300px);
+  aspect-ratio: 1;
+  margin: 0 auto 18px;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.detail-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.detail-artist {
+  margin: 4px 0 0;
+  font-size: 20px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.not-set { color: var(--text-tertiary); }
+
+.detail-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.record-detail .row-value { max-width: 65%; }
