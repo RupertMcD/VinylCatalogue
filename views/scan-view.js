@@ -7,6 +7,7 @@ import { checkBarcode } from '../utils/barcode.js';
 import { checkSearchText } from '../utils/discogs-search.js';
 import { createElement } from '../utils/html.js';
 import { navigate } from '../utils/router.js';
+import { takeFlash } from '../utils/flash.js';
 
 export function renderScanView({ startWithSearch = false } = {}) {
   const hasToken = getDiscogsToken() !== '';
@@ -129,6 +130,7 @@ export function renderScanView({ startWithSearch = false } = {}) {
   const retryButton = node.querySelector('[data-action="retry-camera"]');
   let scanner = null;
   let closed = false;
+  let pausedLabel = 'Use the Camera';
 
   function setCameraState(state, message = '') {
     camera.dataset.state = state;
@@ -136,10 +138,7 @@ export function renderScanView({ startWithSearch = false } = {}) {
     cameraMessage.hidden = !message;
     hint.hidden = state !== 'scanning';
     retry.hidden = state !== 'error' && state !== 'paused';
-    const afterScan = Boolean(history.state && history.state.scanned);
-    retryButton.textContent = state !== 'paused'
-      ? 'Try the Camera Again'
-      : (afterScan ? 'Scan Another Record' : 'Use the Camera');
+    retryButton.textContent = state === 'paused' ? pausedLabel : 'Try the Camera Again';
   }
 
   async function startCamera() {
@@ -203,8 +202,14 @@ export function renderScanView({ startWithSearch = false } = {}) {
     document.removeEventListener('visibilitychange', onVisibilityChange);
   };
 
-  // Coming Back after a scan: wait to be asked, rather than scanning again.
-  if (history.state && history.state.scanned) {
+  const flash = takeFlash();
+  if (flash && flash.justAdded) {
+    // Just saved a scanned record: wait for a tap before scanning the next.
+    pausedLabel = 'Scan Next Record';
+    setCameraState('paused', `Added “${flash.justAdded}”. Ready for the next one.`);
+  } else if (history.state && history.state.scanned) {
+    // Coming Back after a scan: wait to be asked, rather than scanning again.
+    pausedLabel = 'Scan Another Record';
     setCameraState('paused', 'Ready for the next record.');
   } else if (startWithSearch) {
     // Arrived to search by words: keep the camera off and show the search box.

@@ -8,6 +8,8 @@ import { createElement, escapeHtml } from '../utils/html.js';
 import { toDateInputValue, fromDateInputValue } from '../utils/format.js';
 import { resizeImageFile } from '../utils/image-resize.js';
 import { takeRecordDraft } from '../utils/record-draft.js';
+import { setFlash } from '../utils/flash.js';
+import { showToast } from './toast.js';
 import { icons } from '../utils/icons.js';
 import { navigate, goBack } from '../utils/router.js';
 import { coverArt } from './cover-art.js';
@@ -224,10 +226,19 @@ export async function renderRecordFormView(id = null) {
 
     if (existing) {
       goBack(`/record/${encodeURIComponent(record.id)}`);
+      showToast('Changes saved');
+      return;
+    }
+
+    showToast(`Added: ${record.title}`);
+    if (draft) {
+      // Scanned or searched: back to the Add tab, with the camera waiting
+      // so it can't re-scan the record still in your hand.
+      setFlash({ justAdded: record.title });
+      navigate('/', { replace: true, fresh: true });
     } else {
-      // A new record goes to the Collection, so Back can't lead into the
-      // scanner again and add a second copy by mistake.
-      navigate('/collection', { replace: true });
+      // Added by hand from the Collection: back there.
+      navigate('/collection', { replace: true, fresh: true });
     }
   });
 

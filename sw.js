@@ -43,6 +43,7 @@ const APP_FILES = [
   'utils/dev-mode.js',
   'utils/discogs-parser.js',
   'utils/discogs-search.js',
+  'utils/flash.js',
   'utils/format.js',
   'utils/html.js',
   'utils/icons.js',
@@ -64,6 +65,7 @@ const APP_FILES = [
   'views/scan-view.js',
   'views/settings-view.js',
   'views/tab-bar.js',
+  'views/toast.js',
 ];
 // APP_FILES END
 
