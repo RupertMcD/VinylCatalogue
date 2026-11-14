@@ -54,14 +54,18 @@ async function loadRecords() {
   }
 }
 
-// Pass { barcode } for a barcode lookup, or { query } for a word search.
-export async function renderDiscogsMatchesView({ barcode = null, query = null } = {}) {
+// Pass { barcode } for a barcode lookup, { query } for a word search, or
+// { releaseId } for one release (from a pasted Discogs link).
+export async function renderDiscogsMatchesView({ barcode = null, query = null, releaseId = null } = {}) {
+  const byRelease = releaseId !== null;
   const byBarcode = barcode !== null;
   const barcodeCheck = byBarcode ? checkBarcode(barcode) : null;
-  const searchCheck = byBarcode ? null : checkSearchText(query);
+  const searchCheck = byBarcode || byRelease ? null : checkSearchText(query);
   const digits = byBarcode ? barcodeCheck.digits : '';
-  const text = byBarcode ? '' : searchCheck.text;
-  const title = byBarcode ? `Barcode ${digits}` : `“${text}”`;
+  const text = searchCheck ? searchCheck.text : '';
+  let title = `“${text}”`;
+  if (byBarcode) title = `Barcode ${digits}`;
+  if (byRelease) title = 'Discogs Release';
 
   const node = createElement(`
     <div class="matches">
@@ -212,14 +216,46 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null } 
     showMatches(markOwned(found.matches, await loadRecords()), { total: found.total });
   }
 
+  // One release from a pasted link: straight to the form, unless you
+  // already have it, in which case say so first.
+  async function lookUpRelease() {
+    let fields;
+    try {
+      fields = await getReleaseDetails(releaseId);
+    } catch (error) {
+      if (error.kind === 'not-found') {
+        showProblem('Not found on Discogs', "That link doesn't lead to a release Discogs knows. Check you copied the whole link.", { search: true });
+      } else {
+        showError(error);
+      }
+      return;
+    }
+    const records = await loadRecords();
+    const owned = records.filter((record) => String(record.discogsId) === String(fields.discogsId));
+    const seenBefore = Boolean(history.state && history.state.listed);
+    if (owned.length === 0 && !seenBefore) {
+      setRecordDraft({ ...fields, fromDiscogs: true, list: getAddTarget() });
+      navigate('/add', { replace: true });
+      return;
+    }
+    const match = {
+      discogsId: fields.discogsId, artist: fields.artist, title: fields.title, year: fields.year,
+      country: '', label: fields.label, catno: '', formatText: fields.format, thumb: fields.coverImage,
+    };
+    showMatches(markOwned([match], records), { owned });
+  }
+
   function lookUp() {
     showLoading();
+    if (byRelease) return lookUpRelease();
     return byBarcode ? lookUpBarcode() : lookUpWords();
   }
 
   if (byBarcode && !barcodeCheck.valid) {
     showProblem('That barcode doesn’t look right', 'Go back and check the numbers.', { search: true });
-  } else if (!byBarcode && !searchCheck.valid) {
+  } else if (byRelease && !/^\d+$/.test(releaseId)) {
+    showProblem('That link doesn’t look right', 'Paste a link to a release on discogs.com.', { search: true });
+  } else if (searchCheck && !searchCheck.valid) {
     showProblem('Nothing to search for', searchCheck.error, { search: true });
   } else {
     lookUp();

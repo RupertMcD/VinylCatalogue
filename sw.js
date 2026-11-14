@@ -45,6 +45,7 @@ const APP_FILES = [
   'utils/camera-scanner.js',
   'utils/csv.js',
   'utils/dev-mode.js',
+  'utils/discogs-link.js',
   'utils/discogs-parser.js',
   'utils/discogs-search.js',
   'utils/file-share.js',

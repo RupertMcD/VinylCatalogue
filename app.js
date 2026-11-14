@@ -22,6 +22,7 @@ const routes = [
   { path: '/scan/search', tab: 'add', render: () => renderScanView({ startWithSearch: true }) },
   { path: '/lookup/:barcode', tab: 'add', render: ({ barcode }) => renderDiscogsMatchesView({ barcode }) },
   { path: '/search/:query', tab: 'add', render: ({ query }) => renderDiscogsMatchesView({ query }) },
+  { path: '/release/:releaseId', tab: 'add', render: ({ releaseId }) => renderDiscogsMatchesView({ releaseId }) },
   { path: '/collection', tab: 'collection', render: () => renderCollectionView() },
   { path: '/wishlist', tab: 'wishlist', render: () => renderWishlistView() },
   // A record's screen sets its own tab (Collection or Wishlist).

@@ -5,6 +5,7 @@
 import { getDiscogsToken } from '../services/settings-store.js';
 import { checkBarcode } from '../utils/barcode.js';
 import { checkSearchText } from '../utils/discogs-search.js';
+import { parseDiscogsReleaseLink } from '../utils/discogs-link.js';
 import { createElement } from '../utils/html.js';
 import { navigate } from '../utils/router.js';
 import { takeFlash } from '../utils/flash.js';
@@ -67,7 +68,7 @@ export function renderScanView({ startWithSearch = false } = {}) {
         </label>
         <button type="submit" class="row row-button">Search</button>
       </form>
-      <p class="matches-hint scan-search-hint">The catalogue number is usually on the spine or the label, for example PB 41447.</p>
+      <p class="matches-hint scan-search-hint">The catalogue number is usually on the spine or the label, for example PB 41447. You can also paste a link to a release on discogs.com.</p>
 
       <div class="scan-footer">
         <a class="pill-button" data-action="by-hand" href="${getAddTarget() === 'wishlist' ? '#/add/wishlist' : '#/add'}">Add Without a Barcode</a>
@@ -126,6 +127,14 @@ export function renderScanView({ startWithSearch = false } = {}) {
 
   searchForm.addEventListener('submit', (event) => {
     event.preventDefault();
+    // A pasted Discogs link goes straight to that release.
+    const releaseId = parseDiscogsReleaseLink(searchInput.value);
+    if (releaseId) {
+      showSearchError('');
+      searchInput.blur();
+      navigate(`/release/${releaseId}`);
+      return;
+    }
     const result = checkSearchText(searchInput.value);
     if (!result.valid) {
       showSearchError(result.error);

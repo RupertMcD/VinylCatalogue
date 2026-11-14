@@ -2,7 +2,8 @@
 
 import { getRecord, deleteRecord } from '../services/record-store.js';
 import { keepCoversOffline } from '../services/cover-cache.js';
-import { gradeName } from '../models/record.js';
+import { gradeName, isWebAddress } from '../models/record.js';
+import { discogsReleaseUrl } from '../utils/discogs-link.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 import { formatDate, formatPrice } from '../utils/format.js';
 import { icons } from '../utils/icons.js';
@@ -21,6 +22,11 @@ function gradeText(code) {
   return code ? `${code} · ${gradeName(code)}` : '';
 }
 
+// "https://www.juno.co.uk/products/..." -> "juno.co.uk"
+function shopName(link) {
+  try { return new URL(link).hostname.replace(/^www\./, ''); } catch { return link; }
+}
+
 const listHome = (list) => (list === 'wishlist' ? '/wishlist' : '/collection');
 
 function navBar(rightHtml = '', list = 'collection') {
@@ -30,6 +36,20 @@ function navBar(rightHtml = '', list = 'collection') {
       <span class="nav-title"></span>
       <span class="nav-right">${rightHtml}</span>
     </header>`;
+}
+
+// Buttons that open the release on discogs.com, or a shop's page, in Safari.
+function linksHtml(record) {
+  const discogs = discogsReleaseUrl(record.discogsId);
+  const shop = isWebAddress(record.shopLink) ? record.shopLink : '';
+  if (!discogs && !shop) return '';
+  const link = (href, label) => `<a class="row row-button" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  return `
+      <h2 class="group-header">Links</h2>
+      <div class="grouped">
+        ${discogs ? link(discogs, 'View on Discogs') : ''}
+        ${shop ? link(shop, 'Open Shop Link') : ''}
+      </div>`;
 }
 
 function wireBack(node, list = 'collection') {
@@ -83,6 +103,7 @@ export async function renderRecordDetailView(id) {
       <h2 class="group-header">Wanted</h2>
       <div class="grouped">
         ${row('Date added', formatDate(record.dateAdded))}
+        ${row('Shop link', record.shopLink ? shopName(record.shopLink) : '')}
       </div>` : `
       <h2 class="group-header">Condition</h2>
       <div class="grouped">
@@ -95,6 +116,8 @@ export async function renderRecordDetailView(id) {
         ${row('Price paid', formatPrice(record.pricePaid))}
         ${row('Date added', formatDate(record.dateAdded))}
       </div>`}
+
+      ${linksHtml(record)}
 
       <h2 class="group-header">Notes</h2>
       <div class="grouped">
