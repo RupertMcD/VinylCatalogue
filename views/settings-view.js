@@ -1,10 +1,28 @@
-// The Settings screen: add, check or remove the Discogs token.
+// The Settings screen: the Discogs token, and backing up the collection
+// to a CSV file (and restoring from one).
 
-import { getDiscogsToken, saveDiscogsToken, removeDiscogsToken } from '../services/settings-store.js';
+import {
+  getDiscogsToken, saveDiscogsToken, removeDiscogsToken, getLastExport, setLastExport,
+} from '../services/settings-store.js';
 import { checkDiscogsToken } from '../services/discogs-service.js';
+import { getAllRecords } from '../services/record-store.js';
+import { recordsToCsv, exportFileName } from '../models/record-csv.js';
+import { sortRecords } from '../utils/search.js';
+import { formatDate } from '../utils/format.js';
+import { shareOrDownloadFile } from '../utils/file-share.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 
-export function renderSettingsView() {
+const recordCount = (n) => (n === 1 ? '1 record' : `${n} records`);
+
+export async function renderSettingsView() {
+  let records = [];
+  let loadError = '';
+  try {
+    records = sortRecords(await getAllRecords());
+  } catch (error) {
+    loadError = error.message;
+  }
+
   const node = createElement(`
     <div class="settings">
       <header class="nav-bar nav-bar--bordered">
@@ -33,12 +51,30 @@ export function renderSettingsView() {
         <p>The app uses Discogs to fill in record details from a barcode. Your token is kept only on this phone.</p>
         <p>To get a token: sign in at discogs.com, open <strong>Settings</strong>, then <strong>Developers</strong>, and tap <strong>Generate new token</strong>. Copy it and paste it above.</p>
       </div>
+
+      <h2 class="group-header">Backup</h2>
+      <div class="grouped">
+        <div class="row">
+          <span class="row-label">Collection</span>
+          <span class="row-value" data-count></span>
+        </div>
+        <div class="row">
+          <span class="row-label">Last export</span>
+          <span class="row-value" data-last-export></span>
+        </div>
+        <button type="button" class="row row-button" data-action="export">Export to CSV</button>
+      </div>
+      <p class="settings-message" data-backup-message role="status" hidden></p>
+      <div class="group-footer">
+        <p>Your records are kept only on this phone. Deleting the app from your Home Screen or clearing Safari's website data deletes them.</p>
+        <p>Export after each cataloguing session and choose <strong>Save to Files</strong>, ideally in iCloud Drive. The file opens in Numbers or Excel, but keep the original as your backup.</p>
+      </div>
     </div>`);
 
   const form = node.querySelector('[data-form="token"]');
   const input = form.elements.token;
   const status = node.querySelector('[data-status]');
-  const message = node.querySelector('.settings-message');
+  const message = node.querySelector('.settings-message:not([data-backup-message])');
   const buttons = node.querySelectorAll('[data-action="save"], [data-action="check"], [data-action="remove"]');
 
   function showMessage(text, isError = false) {
@@ -113,6 +149,44 @@ export function renderSettingsView() {
     refresh();
   });
 
+  // Backup. The file is prepared now, so a tap can open the share sheet
+  // straight away (iOS only allows that directly after a tap).
+  const backupMessage = node.querySelector('[data-backup-message]');
+  const exportButton = node.querySelector('[data-action="export"]');
+  const file = new File([recordsToCsv(records)], exportFileName(), { type: 'text/csv' });
+
+  function showBackupMessage(text, isError = false) {
+    backupMessage.textContent = text;
+    backupMessage.hidden = !text;
+    backupMessage.classList.toggle('settings-message--error', isError);
+  }
+
+  function refreshBackup() {
+    node.querySelector('[data-count]').textContent = loadError ? 'Not available' : recordCount(records.length);
+    const last = getLastExport();
+    node.querySelector('[data-last-export]').textContent = last ? formatDate(last) : 'Never';
+    exportButton.disabled = Boolean(loadError) || records.length === 0;
+  }
+
+  exportButton.addEventListener('click', async () => {
+    showBackupMessage('');
+    let result;
+    try {
+      result = await shareOrDownloadFile(file);
+    } catch {
+      showBackupMessage("The file couldn't be saved. Please try again.", true);
+      return;
+    }
+    if (result === 'cancelled') return;
+    setLastExport(new Date().toISOString());
+    refreshBackup();
+    showBackupMessage(result === 'shared'
+      ? `Exported ${recordCount(records.length)}. Keep the file somewhere safe.`
+      : `Exported ${recordCount(records.length)} to your Downloads.`);
+  });
+
+  if (loadError) showBackupMessage(loadError, true);
+  refreshBackup();
 
   refresh();
   return node;

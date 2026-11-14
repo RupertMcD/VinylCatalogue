@@ -27,3 +27,22 @@ export function removeDiscogsToken() {
     // Nothing saved, so nothing to remove.
   }
 }
+
+// When the collection was last exported to CSV (an ISO date), or ''.
+const LAST_EXPORT_KEY = 'last-export';
+
+export function getLastExport() {
+  try {
+    return localStorage.getItem(LAST_EXPORT_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function setLastExport(isoDate) {
+  try {
+    localStorage.setItem(LAST_EXPORT_KEY, isoDate);
+  } catch {
+    // Not essential: only used to show "Last export" in Settings.
+  }
+}
