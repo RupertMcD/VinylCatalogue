@@ -9,6 +9,10 @@
 const CACHE_VERSION = 'v2';
 const CACHE_NAME = `vinyl-catalogue-${CACHE_VERSION}`;
 
+// Copies of Discogs cover pictures, kept by services/cover-cache.js.
+// Not removed on updates, because the name doesn't start "vinyl-catalogue-".
+const COVER_CACHE = 'vinyl-covers';
+
 // APP_FILES START
 const APP_FILES = [
   './',
@@ -21,6 +25,7 @@ const APP_FILES = [
   'icons/icon-maskable-512.png',
   'models/record.js',
   'models/sample-records.js',
+  'services/cover-cache.js',
   'services/discogs-service.js',
   'services/record-store.js',
   'services/settings-store.js',
@@ -86,7 +91,17 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  // Leave other websites alone (for example Discogs in phase 3).
+
+  // Cover pictures from Discogs: use the saved copy if there is one.
+  if (url.hostname === 'i.discogs.com') {
+    event.respondWith((async () => {
+      const saved = await (await caches.open(COVER_CACHE)).match(request.url);
+      return saved || fetch(request);
+    })());
+    return;
+  }
+
+  // Leave other websites alone (for example the Discogs lookups).
   if (url.origin !== self.location.origin) return;
 
   event.respondWith((async () => {

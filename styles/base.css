@@ -265,3 +265,6 @@ button { font: inherit; color: inherit; }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* A cover picture that couldn't load: a plain tile instead. */
+.cover--missing { background: var(--fill); }

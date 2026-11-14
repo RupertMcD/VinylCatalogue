@@ -2,6 +2,7 @@
 // edits that record, without one it makes a new record.
 
 import { getRecord, saveRecord } from '../services/record-store.js';
+import { keepCoversOffline } from '../services/cover-cache.js';
 import { createRecord, validateRecord, FORMATS, GRADES } from '../models/record.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 import { toDateInputValue, fromDateInputValue } from '../utils/format.js';
@@ -214,6 +215,7 @@ export async function renderRecordFormView(id = null) {
     saveButton.disabled = true;
     try {
       await saveRecord(record);
+      keepCoversOffline(); // Runs in the background.
     } catch {
       showNotice("The record couldn't be saved. Please try again.");
       saveButton.disabled = false;

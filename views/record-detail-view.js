@@ -1,6 +1,7 @@
 // The Record screen: the cover and every detail of one record.
 
 import { getRecord, deleteRecord } from '../services/record-store.js';
+import { keepCoversOffline } from '../services/cover-cache.js';
 import { gradeName } from '../models/record.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 import { formatDate, formatPrice } from '../utils/format.js';
@@ -112,6 +113,7 @@ export async function renderRecordDetailView(id) {
     if (!confirmed) return;
     try {
       await deleteRecord(record.id);
+      keepCoversOffline(); // Removes its saved cover.
       goBack('/');
     } catch {
       const notice = node.querySelector('.notice');
