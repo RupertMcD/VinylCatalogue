@@ -6,6 +6,7 @@ import { createRecord, validateRecord, FORMATS, GRADES } from '../models/record.
 import { createElement, escapeHtml } from '../utils/html.js';
 import { toDateInputValue, fromDateInputValue } from '../utils/format.js';
 import { resizeImageFile } from '../utils/image-resize.js';
+import { takeRecordDraft } from '../utils/record-draft.js';
 import { icons } from '../utils/icons.js';
 import { navigate, goBack } from '../utils/router.js';
 import { coverArt } from './cover-art.js';
@@ -60,7 +61,9 @@ export async function renderRecordFormView(id = null) {
     if (!existing) return notFound();
   }
 
-  const start = existing ?? createRecord({});
+  // Details handed over by a barcode lookup, if any.
+  const draft = existing ? null : takeRecordDraft();
+  const start = existing ?? createRecord(draft ?? {});
   let coverImage = start.coverImage;
   const backTo = existing ? `/record/${encodeURIComponent(existing.id)}` : '/';
 
@@ -73,6 +76,7 @@ export async function renderRecordFormView(id = null) {
       </header>
 
       <p class="notice form-notice" role="alert" hidden></p>
+      ${draft && draft.fromDiscogs ? `<p class="info-panel info-panel--left form-info">Filled in from Discogs. Check the details, add the grades and price, then tap Save.</p>` : ''}
 
       <div class="form-cover">
         <span class="form-cover-preview"></span>
@@ -146,7 +150,8 @@ export async function renderRecordFormView(id = null) {
   }
 
   const initialValues = JSON.stringify(currentValues());
-  const hasChanges = () => JSON.stringify(currentValues()) !== initialValues;
+  // A looked-up record counts as unsaved work, so Cancel asks first.
+  const hasChanges = () => Boolean(draft) || JSON.stringify(currentValues()) !== initialValues;
 
   function showErrors(errors) {
     node.querySelectorAll('.field[data-field]').forEach((row) => {

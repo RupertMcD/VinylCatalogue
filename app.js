@@ -5,6 +5,8 @@ import { renderCollectionView } from './views/collection-view.js';
 import { renderRecordDetailView } from './views/record-detail-view.js';
 import { renderRecordFormView } from './views/record-form-view.js';
 import { renderSettingsView } from './views/settings-view.js';
+import { renderScanView } from './views/scan-view.js';
+import { renderDiscogsMatchesView } from './views/discogs-matches-view.js';
 import { setUpServiceWorker } from './utils/service-worker-setup.js';
 import { requestPersistentStorage } from './utils/persistent-storage.js';
 
@@ -14,6 +16,8 @@ const routes = [
   { path: '/add', render: () => renderRecordFormView() },
   { path: '/edit/:id', render: ({ id }) => renderRecordFormView(id) },
   { path: '/settings', render: () => renderSettingsView() },
+  { path: '/scan', render: () => renderScanView() },
+  { path: '/lookup/:barcode', render: ({ barcode }) => renderDiscogsMatchesView(barcode) },
 ];
 
 startRouter(document.getElementById('app'), routes);

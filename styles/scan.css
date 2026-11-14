@@ -1,0 +1,79 @@
+/* Styles for Add by Barcode and the Discogs matches list. */
+
+.nav-actions { display: inline-flex; }
+
+/* A calm panel for helpful (not error) messages. */
+.info-panel {
+  margin: 16px var(--gutter);
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.info-panel p { margin: 0 0 12px; }
+.info-panel p:last-child { margin-bottom: 0; }
+.info-panel--left { text-align: left; }
+.info-panel strong { color: var(--text); font-weight: 600; }
+
+.form-info { margin-top: 16px; }
+
+.scan .field input { text-align: left; letter-spacing: 0.04em; }
+
+.scan-error { margin-left: 0; }
+
+.scan-footer {
+  margin: 0 var(--gutter) 24px;
+  text-align: center;
+}
+
+.button-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.matches-hint {
+  margin: -2px calc(var(--gutter) + 16px) 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.matches .record-list { margin-bottom: 24px; }
+
+/* Each match is a button that looks like a list row. */
+.match-row {
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.match-row .cover { width: 56px; height: 56px; }
+.match-row + .match-row::before { left: 84px; }
+.match-details { font-size: 13px; }
+
+.match-status {
+  display: inline-flex;
+  flex: none;
+  width: 20px;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.match-status .icon { width: 18px; height: 18px; }
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--fill);
+  border-top-color: var(--text-secondary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

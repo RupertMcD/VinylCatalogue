@@ -71,7 +71,10 @@ export async function renderCollectionView() {
       <header class="nav-bar">
         <a class="nav-button nav-left" href="#/settings" aria-label="Settings">${icons.settings}</a>
         <span class="nav-title"></span>
-        <a class="nav-button nav-right" href="#/add" aria-label="Add record">${icons.plus}</a>
+        <span class="nav-right nav-actions">
+          <a class="nav-button" href="#/scan" aria-label="Add by barcode">${icons.barcode}</a>
+          <a class="nav-button" href="#/add" aria-label="Add record">${icons.plus}</a>
+        </span>
       </header>
       <h1 class="large-title">Collection</h1>
       <div class="collection-controls">
