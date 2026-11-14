@@ -108,6 +108,17 @@
   object-fit: cover;
 }
 
+/* The camera picture is drawn on this canvas, on top of the video. */
+.camera-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide the last picture when the camera isn't running. */
+.camera:not([data-state="scanning"]):not([data-state="tap"]) .camera-preview { visibility: hidden; }
+
 .camera-guide {
   position: absolute;
   left: 8%;

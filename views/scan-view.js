@@ -28,6 +28,7 @@ export function renderScanView({ startWithSearch = false } = {}) {
 
       <section class="camera" aria-label="Camera">
         <video class="camera-video" playsinline muted autoplay></video>
+        <canvas class="camera-preview" aria-hidden="true"></canvas>
         <div class="camera-guide" aria-hidden="true"></div>
         <div class="camera-message" role="status">Starting the camera…</div>
       </section>
@@ -155,6 +156,7 @@ export function renderScanView({ startWithSearch = false } = {}) {
     }
     if (closed) return;
     scanner = startCameraScanner(video, {
+      preview: node.querySelector('.camera-preview'),
       onStarted: () => setCameraState('scanning'),
       onNeedsTap: () => setCameraState('tap', 'Tap here to show the camera'),
       onFound: (digits) => {

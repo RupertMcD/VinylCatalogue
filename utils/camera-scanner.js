@@ -45,18 +45,48 @@ function waitForPicture(video) {
   });
 }
 
+// Copies the camera picture onto a canvas on screen, filling it like
+// "object-fit: cover". Home-screen apps on iOS can leave a live camera
+// <video> black even while it's working, so the preview is drawn here.
+function drawPreview(video, preview) {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) return;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.round(preview.clientWidth * ratio);
+  const height = Math.round(preview.clientHeight * ratio);
+  if (!width || !height) return;
+  if (preview.width !== width || preview.height !== height) {
+    preview.width = width;
+    preview.height = height;
+  }
+  const scale = Math.max(width / vw, height / vh);
+  const sw = width / scale;
+  const sh = height / scale;
+  preview.getContext('2d').drawImage(video, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, width, height);
+}
+
 // Returns { stop }. onError(message) is called with a friendly message.
 // onNeedsTap() is called if iOS wants a tap before showing the camera.
-export function startCameraScanner(video, { onFound, onError, onStarted, onNeedsTap }) {
+// `preview` is an optional canvas the camera picture is drawn onto.
+export function startCameraScanner(video, { preview, onFound, onError, onStarted, onNeedsTap }) {
   let stream = null;
   let stopped = false;
   let timer = null;
+  let frame = null;
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d', { willReadFrequently: true });
+
+  function previewLoop() {
+    if (stopped || !preview) return;
+    try { drawPreview(video, preview); } catch { /* try again next frame */ }
+    frame = requestAnimationFrame(previewLoop);
+  }
 
   function stop() {
     stopped = true;
     clearTimeout(timer);
+    if (frame) cancelAnimationFrame(frame);
     if (stream) stream.getTracks().forEach((track) => track.stop());
     stream = null;
     video.srcObject = null;
@@ -130,7 +160,10 @@ export function startCameraScanner(video, { onFound, onError, onStarted, onNeeds
         // iOS sometimes wants a tap first. Scanning still works meanwhile.
         if (onNeedsTap) onNeedsTap();
       }
-      if (!stopped) scanOnce();
+      if (!stopped) {
+        previewLoop();
+        scanOnce();
+      }
     } catch (error) {
       if (!stopped) {
         stop();
