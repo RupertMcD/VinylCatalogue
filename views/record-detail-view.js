@@ -1,12 +1,13 @@
 // The Record screen: the cover and every detail of one record.
 
-import { getRecord } from '../services/record-store.js';
+import { getRecord, deleteRecord } from '../services/record-store.js';
 import { gradeName } from '../models/record.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 import { formatDate, formatPrice } from '../utils/format.js';
 import { icons } from '../utils/icons.js';
 import { goBack } from '../utils/router.js';
 import { coverArt } from './cover-art.js';
+import { showConfirmSheet } from './confirm-sheet.js';
 
 const NOT_SET = '<span class="not-set">Not set</span>';
 
@@ -93,8 +94,31 @@ export async function renderRecordDetailView(id) {
         ${row('Discogs ID', record.discogsId)}
         ${row('Record ID', record.id)}
       </div>
+
+      <p class="notice" role="alert" hidden></p>
+      <div class="grouped">
+        <button type="button" class="row row-button row-button--danger" data-action="delete">Delete Record</button>
+      </div>
     </div>`);
 
   wireBack(node);
+
+  node.querySelector('[data-action="delete"]').addEventListener('click', async () => {
+    const confirmed = await showConfirmSheet({
+      title: `Delete “${record.title}”?`,
+      message: "This can't be undone.",
+      confirmLabel: 'Delete Record',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteRecord(record.id);
+      goBack('/');
+    } catch {
+      const notice = node.querySelector('.notice');
+      notice.textContent = "The record couldn't be deleted. Please try again.";
+      notice.hidden = false;
+    }
+  });
+
   return node;
 }
