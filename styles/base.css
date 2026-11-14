@@ -17,6 +17,7 @@
   --cover-light: 82%;
   --cover-ink: 66%;
   --segment-selected: #ffffff;
+  --sheet-bg: rgba(255, 255, 255, 0.92);
   --radius: 10px;
   --gutter: 16px;
 }
@@ -38,6 +39,7 @@
     --cover-light: 24%;
     --cover-ink: 36%;
     --segment-selected: #636366;
+    --sheet-bg: rgba(44, 44, 46, 0.92);
   }
 }
 

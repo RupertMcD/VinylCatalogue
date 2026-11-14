@@ -1,1 +1,103 @@
-/* Styles for the form screen. */
+/* Styles for the Add / Edit Record form. */
+
+.record-form {
+  min-height: 100dvh;
+  animation: slide-up 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.form-notice { margin-top: 16px; }
+
+.form-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin: 20px var(--gutter) 28px;
+}
+
+.form-cover .cover {
+  width: 160px;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.form-cover-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.form-cover-actions .pill-button { gap: 6px; font-weight: 500; }
+.form-cover-actions .icon { width: 20px; height: 20px; }
+.pill-button--danger { color: var(--danger); }
+.pill-button[hidden] { display: none; }
+
+.field {
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.field-label {
+  flex: none;
+  width: 96px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field input::placeholder,
+.field textarea::placeholder { color: var(--text-tertiary); }
+
+.field select { cursor: pointer; }
+.field > .icon { width: 16px; height: 16px; color: var(--text-tertiary); pointer-events: none; }
+
+/* Safari's date picker: keep the value on the left like other fields. */
+.field input[type="date"] { display: flex; align-items: center; }
+.field input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+
+.price-input {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.field-error {
+  flex-basis: 100%;
+  margin: -6px 0 0 108px;
+  padding-bottom: 10px;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.field-error[hidden] { display: none; }
+
+.field--invalid .field-label { color: var(--danger); }
+
+.notes-field { padding: 11px 16px; }
+
+.notes-field textarea {
+  width: 100%;
+  min-height: 96px;
+  line-height: 1.35;
+  resize: vertical;
+}

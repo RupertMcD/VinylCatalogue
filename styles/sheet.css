@@ -1,1 +1,74 @@
-/* Styles for the sheet screen. */
+/* The iOS-style action sheet (e.g. "Delete record?") and slide animations. */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 8px calc(env(safe-area-inset-bottom) + 8px);
+  background: var(--backdrop);
+  animation: fade-in 0.2s ease-out;
+}
+
+.action-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+  animation: slide-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.action-group {
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--sheet-bg);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.action-header {
+  padding: 14px 16px;
+  border-bottom: 0.5px solid var(--separator);
+  text-align: center;
+}
+
+.action-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.action-message {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.action-message:empty { display: none; }
+
+.action-button {
+  display: block;
+  width: 100%;
+  min-height: 57px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.action-button--danger { color: var(--danger); }
+.action-button--cancel { font-weight: 600; background: var(--surface); }
+.action-button:active { background: var(--fill); }
+
+.sheet-backdrop.is-closing { animation: fade-out 0.2s ease-in forwards; }
+.sheet-backdrop.is-closing .action-sheet { animation: slide-down 0.2s ease-in forwards; }
+
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes slide-up { from { transform: translateY(100%); } }
+@keyframes slide-down { to { transform: translateY(100%); } }
