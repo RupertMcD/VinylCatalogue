@@ -46,15 +46,17 @@ export function filterByShelf(records, shelf) {
 }
 
 // The records that change when a shelf is renamed, already updated.
-// Renaming onto an existing shelf merges the two.
+// Renaming onto an existing shelf merges the two, and every record ends up
+// with the new spelling (so "Jazz" and "jazz" never both exist).
 export function renameShelf(records, oldName, newName) {
   const cleaned = cleanShelfName(newName);
   if (!cleaned) return [];
+  const affected = (name) => keyOf(name) === keyOf(oldName) || keyOf(name) === keyOf(cleaned);
   return records
-    .filter((record) => (record.shelves || []).some((name) => keyOf(name) === keyOf(oldName)))
+    .filter((record) => (record.shelves || []).some((name) => affected(name) && name !== cleaned))
     .map((record) => ({
       ...record,
-      shelves: normaliseShelves(record.shelves.map((name) => (keyOf(name) === keyOf(oldName) ? cleaned : name))),
+      shelves: normaliseShelves([cleaned, ...record.shelves.filter((name) => !affected(name))]),
     }));
 }
 

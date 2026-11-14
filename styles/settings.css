@@ -24,3 +24,43 @@
 
 .group-footer p { margin: 0 0 8px; }
 .group-footer strong { font-weight: 600; color: var(--text); }
+
+/* Shelves: one row per shelf with Rename and Delete. */
+.shelf-manage { gap: 8px; }
+
+.shelf-manage-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.shelf-manage-count {
+  font-size: 15px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.shelf-action {
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.shelf-action--danger { color: var(--danger); }
+.shelf-action--bold { font-weight: 600; }
+
+.shelf-rename input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}

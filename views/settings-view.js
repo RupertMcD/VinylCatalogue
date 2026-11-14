@@ -5,7 +5,10 @@ import {
   getDiscogsToken, saveDiscogsToken, removeDiscogsToken, getLastExport, setLastExport,
 } from '../services/settings-store.js';
 import { checkDiscogsToken } from '../services/discogs-service.js';
-import { getAllRecords } from '../services/record-store.js';
+import { getAllRecords, saveRecords } from '../services/record-store.js';
+import { listShelves, renameShelf, removeShelf, cleanShelfName } from '../models/shelves.js';
+import { showConfirmSheet } from './confirm-sheet.js';
+import { showToast } from './toast.js';
 import { recordsToCsv, exportFileName, readRecordsCsv, planImport } from '../models/record-csv.js';
 import { sortRecords } from '../utils/search.js';
 import { formatDate } from '../utils/format.js';
@@ -52,6 +55,13 @@ export async function renderSettingsView() {
       <div class="group-footer">
         <p>The app uses Discogs to fill in record details from a barcode. Your token is kept only on this phone.</p>
         <p>To get a token: sign in at discogs.com, open <strong>Settings</strong>, then <strong>Developers</strong>, and tap <strong>Generate new token</strong>. Copy it and paste it above.</p>
+      </div>
+
+      <h2 class="group-header">Shelves</h2>
+      <div class="grouped" data-shelves></div>
+      <p class="settings-message" data-shelves-message role="status" hidden></p>
+      <div class="group-footer">
+        <p>Add shelves to a record when you edit it. Renaming a shelf changes it on every record. Deleting a shelf takes it off records but never deletes the records.</p>
       </div>
 
       <h2 class="group-header">Backup</h2>
@@ -160,7 +170,8 @@ export async function renderSettingsView() {
   // straight away (iOS only allows that directly after a tap).
   const backupMessage = node.querySelector('[data-backup-message]');
   const exportButton = node.querySelector('[data-action="export"]');
-  const file = new File([recordsToCsv(records)], exportFileName(), { type: 'text/csv' });
+  const makeFile = () => new File([recordsToCsv(records)], exportFileName(), { type: 'text/csv' });
+  let file = makeFile();
 
   function showBackupMessage(text, isError = false) {
     backupMessage.textContent = text;
@@ -228,7 +239,89 @@ export async function renderSettingsView() {
     navigate('/import');
   });
 
+  // Shelves: rename or delete. Changes are saved straight away.
+  const shelvesGroup = node.querySelector('[data-shelves]');
+  const shelvesMessage = node.querySelector('[data-shelves-message]');
+
+  function showShelvesMessage(text, isError = false) {
+    shelvesMessage.textContent = text;
+    shelvesMessage.hidden = !text;
+    shelvesMessage.classList.toggle('settings-message--error', isError);
+  }
+
+  function renderShelvesSection(editing = '') {
+    const shelves = listShelves(records);
+    if (shelves.length === 0) {
+      shelvesGroup.innerHTML = '<div class="row"><span class="not-set">No shelves yet</span></div>';
+      return;
+    }
+    shelvesGroup.innerHTML = shelves.map((shelf) => (shelf.name === editing ? `
+      <form class="row shelf-rename" data-old="${escapeHtml(shelf.name)}" novalidate>
+        <input name="name" value="${escapeHtml(shelf.name)}" maxlength="40" autocomplete="off"
+          autocapitalize="words" enterkeyhint="done" aria-label="New name for ${escapeHtml(shelf.name)}">
+        <button type="button" class="shelf-action" data-shelf-action="cancel">Cancel</button>
+        <button type="submit" class="shelf-action shelf-action--bold">Save</button>
+      </form>` : `
+      <div class="row shelf-manage">
+        <span class="shelf-manage-name">${escapeHtml(shelf.name)}</span>
+        <span class="shelf-manage-count">${recordCount(shelf.count)}</span>
+        <button type="button" class="shelf-action" data-shelf-action="rename" data-name="${escapeHtml(shelf.name)}">Rename</button>
+        <button type="button" class="shelf-action shelf-action--danger" data-shelf-action="delete" data-name="${escapeHtml(shelf.name)}">Delete</button>
+      </div>`)).join('');
+    const input = shelvesGroup.querySelector('.shelf-rename input');
+    if (input) { input.focus(); input.select(); }
+  }
+
+  async function applyShelfChange(changed, message) {
+    try {
+      await saveRecords(changed);
+      records = sortRecords(await getAllRecords());
+    } catch (error) {
+      showShelvesMessage(`${error.message} Nothing was changed.`, true);
+      return;
+    }
+    file = makeFile(); // Keep the export up to date.
+    showShelvesMessage('');
+    showToast(message);
+    renderShelvesSection();
+  }
+
+  shelvesGroup.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-shelf-action]');
+    if (!button) return;
+    const action = button.dataset.shelfAction;
+    if (action === 'rename') renderShelvesSection(button.dataset.name);
+    if (action === 'cancel') renderShelvesSection();
+    if (action === 'delete') {
+      const name = button.dataset.name;
+      const count = listShelves(records).find((shelf) => shelf.name === name)?.count || 0;
+      const confirmed = await showConfirmSheet({
+        title: `Delete the shelf “${name}”?`,
+        message: `It will be taken off ${recordCount(count)}. The records themselves are kept.`,
+        confirmLabel: 'Delete Shelf',
+      });
+      if (confirmed) applyShelfChange(removeShelf(records, name), `Deleted the shelf “${name}”`);
+    }
+  });
+
+  shelvesGroup.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const form = event.target;
+    const oldName = form.dataset.old;
+    const newName = cleanShelfName(form.elements.name.value);
+    if (!newName) {
+      showShelvesMessage('Type a name for the shelf.', true);
+      return;
+    }
+    if (newName === oldName) { renderShelvesSection(); return; }
+    const merging = listShelves(records).some((shelf) => shelf.name !== oldName
+      && shelf.name.toLocaleLowerCase('en-GB') === newName.toLocaleLowerCase('en-GB'));
+    applyShelfChange(renameShelf(records, oldName, newName),
+      merging ? `Merged “${oldName}” into “${newName}”` : `Renamed to “${newName}”`);
+  });
+
   if (loadError) showBackupMessage(loadError, true);
+  renderShelvesSection();
   refreshBackup();
 
   refresh();

@@ -41,7 +41,7 @@ test('shelves: renaming updates only the records on that shelf', () => {
 
 test('shelves: renaming onto an existing shelf merges them', () => {
   const changed = renameShelf(records, 'Favourites', 'jazz');
-  assertDeepEqual(changed[0].shelves, ['Jazz']);
+  assertDeepEqual(changed.map((r) => [r.id, r.shelves]), [['1', ['jazz']]]);
 });
 
 test('shelves: renaming to a blank name changes nothing', () => {
@@ -53,4 +53,18 @@ test('shelves: deleting a shelf takes it off records but keeps the records', () 
   assertDeepEqual(ids(changed), ['1', '2']);
   assertDeepEqual(changed[0].shelves, ['Favourites']);
   assertDeepEqual(changed[1].shelves, []);
+});
+
+test('shelves: renaming uses the new spelling on every record', () => {
+  const mixed = [
+    { id: 'a', shelves: ['Favourites', 'Jazz'] },
+    { id: 'b', shelves: ['Jazz'] },
+    { id: 'c', shelves: ['favourites'] },
+    { id: 'd', shelves: ['Soul'] },
+  ];
+  const changed = renameShelf(mixed, 'Jazz', 'favourites');
+  assertDeepEqual(ids(changed), ['a', 'b']);
+  assertDeepEqual(changed.map((r) => r.shelves), [['favourites'], ['favourites']]);
+  // A capitals-only rename updates every record with that shelf.
+  assertDeepEqual(renameShelf(mixed, 'favourites', 'Favourites').map((r) => [r.id, r.shelves]), [['c', ['Favourites']]]);
 });
