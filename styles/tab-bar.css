@@ -1,0 +1,42 @@
+/* The tab bar at the bottom of the screen, clear of the home bar. */
+
+.tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 -0.5px 0 var(--separator);
+}
+
+.tab-bar[hidden] { display: none; }
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 50px;
+  padding-top: 4px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.tab .icon { width: 26px; height: 26px; }
+.tab--current { color: var(--accent); }
+.tab:active { opacity: 0.6; }
+
+/* Leave room at the bottom of each screen for the tab bar. */
+body.has-tab-bar #app {
+  padding-bottom: calc(50px + env(safe-area-inset-bottom) + 24px);
+}

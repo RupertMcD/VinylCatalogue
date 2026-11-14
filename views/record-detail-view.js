@@ -31,7 +31,7 @@ function navBar(rightHtml = '') {
 }
 
 function wireBack(node) {
-  node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/'));
+  node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/collection'));
 }
 
 function notFound(message) {
@@ -116,7 +116,7 @@ export async function renderRecordDetailView(id) {
       keepCoversOffline(); // Removes its saved cover.
       // Always to the Collection: going "back" could land on a barcode
       // lookup, which would offer to add the record again.
-      navigate('/', { replace: true });
+      navigate('/collection', { replace: true });
     } catch {
       const notice = node.querySelector('.notice');
       notice.textContent = "The record couldn't be deleted. Please try again.";

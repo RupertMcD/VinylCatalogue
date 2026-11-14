@@ -1,4 +1,4 @@
-// The Add by Barcode screen: scan with the camera, type the numbers under
+// The Add tab (the screen the app opens on): scan with the camera, type the numbers under
 // the barcode, or search Discogs by artist, title or catalogue number.
 // Each goes on to the Discogs lookup.
 
@@ -6,8 +6,7 @@ import { getDiscogsToken } from '../services/settings-store.js';
 import { checkBarcode } from '../utils/barcode.js';
 import { checkSearchText } from '../utils/discogs-search.js';
 import { createElement } from '../utils/html.js';
-import { icons } from '../utils/icons.js';
-import { navigate, goBack } from '../utils/router.js';
+import { navigate } from '../utils/router.js';
 
 export function renderScanView({ startWithSearch = false } = {}) {
   const hasToken = getDiscogsToken() !== '';
@@ -15,8 +14,8 @@ export function renderScanView({ startWithSearch = false } = {}) {
   const node = createElement(`
     <div class="scan">
       <header class="nav-bar nav-bar--bordered">
-        <button type="button" class="nav-button nav-left" data-action="back">${icons.back}Collection</button>
-        <span class="nav-title">Find a Record</span>
+        <span class="nav-left"></span>
+        <span class="nav-title">Add a Record</span>
         <span class="nav-right"></span>
       </header>
 
@@ -120,7 +119,6 @@ export function renderScanView({ startWithSearch = false } = {}) {
     navigate(`/search/${encodeURIComponent(result.text)}`);
   });
 
-  node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/'));
 
   // The camera. It stops when this screen closes or the app goes into the background.
   const camera = node.querySelector('.camera');

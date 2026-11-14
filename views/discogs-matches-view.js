@@ -69,7 +69,7 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null } 
     </div>`);
 
   const body = node.querySelector('.matches-body');
-  node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/scan'));
+  node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/'));
 
   function addByHand() {
     setRecordDraft(byBarcode ? { barcode: digits } : {});

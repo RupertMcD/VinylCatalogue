@@ -10,20 +10,27 @@ import { renderDiscogsMatchesView } from './views/discogs-matches-view.js';
 import { setUpServiceWorker } from './utils/service-worker-setup.js';
 import { requestPersistentStorage } from './utils/persistent-storage.js';
 import { keepCoversOffline } from './services/cover-cache.js';
+import { createTabBar, showTab } from './views/tab-bar.js';
 
+// `tab` is the tab bar tab each screen belongs to; no tab hides the bar.
+// The app opens on "/", the Add tab, with the camera ready.
 const routes = [
-  { path: '/', render: () => renderCollectionView() },
-  { path: '/record/:id', render: ({ id }) => renderRecordDetailView(id) },
-  { path: '/add', render: () => renderRecordFormView() },
-  { path: '/edit/:id', render: ({ id }) => renderRecordFormView(id) },
-  { path: '/settings', render: () => renderSettingsView() },
-  { path: '/scan', render: () => renderScanView() },
-  { path: '/scan/search', render: () => renderScanView({ startWithSearch: true }) },
-  { path: '/lookup/:barcode', render: ({ barcode }) => renderDiscogsMatchesView({ barcode }) },
-  { path: '/search/:query', render: ({ query }) => renderDiscogsMatchesView({ query }) },
+  { path: '/', tab: 'add', render: () => renderScanView() },
+  { path: '/scan', tab: 'add', render: () => renderScanView() },
+  { path: '/scan/search', tab: 'add', render: () => renderScanView({ startWithSearch: true }) },
+  { path: '/lookup/:barcode', tab: 'add', render: ({ barcode }) => renderDiscogsMatchesView({ barcode }) },
+  { path: '/search/:query', tab: 'add', render: ({ query }) => renderDiscogsMatchesView({ query }) },
+  { path: '/collection', tab: 'collection', render: () => renderCollectionView() },
+  { path: '/record/:id', tab: 'collection', render: ({ id }) => renderRecordDetailView(id) },
+  { path: '/settings', tab: 'settings', render: () => renderSettingsView() },
+  { path: '/add', tab: null, render: () => renderRecordFormView() },
+  { path: '/edit/:id', tab: null, render: ({ id }) => renderRecordFormView(id) },
 ];
 
-startRouter(document.getElementById('app'), routes);
+createTabBar();
+startRouter(document.getElementById('app'), routes, {
+  onChange: (route) => showTab(route.tab),
+});
 
 // Offline support and permanent storage. Neither blocks the app from starting.
 setUpServiceWorker();

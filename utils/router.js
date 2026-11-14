@@ -4,6 +4,7 @@
 let routes = [];
 let mountPoint = null;
 let renderCount = 0;
+let onChange = null;
 
 // Turns "/record/:id" into a pattern and pulls out the named parts.
 export function matchRoute(routeList, path) {
@@ -28,11 +29,12 @@ export function currentPath() {
 }
 
 // Moves to another screen. "replace" swaps the current history entry
-// instead of adding one, so Back skips it.
-export function navigate(path, { replace = false } = {}) {
+// instead of adding one, so Back skips it. "fresh" also forgets anything
+// the old screen remembered (used when switching tabs).
+export function navigate(path, { replace = false, fresh = false } = {}) {
   const url = `#${path}`;
   if (replace) {
-    history.replaceState(history.state, '', url);
+    history.replaceState(fresh ? { inApp: Boolean(history.state && history.state.inApp) } : history.state, '', url);
   } else {
     history.pushState({ inApp: true }, '', url);
   }
@@ -76,6 +78,7 @@ async function renderCurrent() {
 
   mountPoint.replaceChildren(node);
   window.scrollTo(0, node.initialScrollY ?? 0);
+  if (onChange) onChange(found.route);
 }
 
 function errorScreen() {
@@ -84,14 +87,16 @@ function errorScreen() {
     <div class="empty-state">
       <h2>Something went wrong</h2>
       <p>That screen couldn't be shown. Your records are safe.</p>
-      <a class="pill-button" href="#/">Back to Collection</a>
+      <a class="pill-button" href="#/collection">Back to Collection</a>
     </div>`;
   return node;
 }
 
-export function startRouter(element, routeList) {
+// `options.onChange(route)` runs after each screen is shown.
+export function startRouter(element, routeList, options = {}) {
   mountPoint = element;
   routes = routeList;
+  onChange = options.onChange || null;
 
   window.addEventListener('hashchange', renderCurrent);
 
@@ -100,7 +105,9 @@ export function startRouter(element, routeList) {
     const link = event.target.closest('a[href^="#/"]');
     if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    navigate(link.getAttribute('href').slice(1));
+    // Tabs swap screens without adding to Back history, like an iPhone app.
+    const isTab = link.hasAttribute('data-tab');
+    navigate(link.getAttribute('href').slice(1), { replace: isTab, fresh: isTab });
   });
 
   renderCurrent();

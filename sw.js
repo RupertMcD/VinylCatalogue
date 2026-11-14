@@ -35,6 +35,7 @@ const APP_FILES = [
   'styles/form.css',
   'styles/scan.css',
   'styles/settings.css',
+  'styles/tab-bar.css',
   'styles/sheet.css',
   'utils/barcode-reader.js',
   'utils/barcode.js',
@@ -62,6 +63,7 @@ const APP_FILES = [
   'views/record-form-view.js',
   'views/scan-view.js',
   'views/settings-view.js',
+  'views/tab-bar.js',
 ];
 // APP_FILES END
 

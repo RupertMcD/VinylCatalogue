@@ -44,7 +44,7 @@ function notFound() {
   const node = createElement(`
     <div>
       <header class="nav-bar nav-bar--bordered">
-        <a class="nav-button nav-left" href="#/">${icons.back}Collection</a>
+        <a class="nav-button nav-left" href="#/collection">${icons.back}Collection</a>
       </header>
       <div class="empty-state"><h2>Record not found</h2><p>It may have been deleted.</p></div>
     </div>`);
@@ -227,7 +227,7 @@ export async function renderRecordFormView(id = null) {
     } else {
       // A new record goes to the Collection, so Back can't lead into the
       // scanner again and add a second copy by mistake.
-      navigate('/', { replace: true });
+      navigate('/collection', { replace: true });
     }
   });
 

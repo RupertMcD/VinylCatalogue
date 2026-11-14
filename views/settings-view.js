@@ -3,14 +3,12 @@
 import { getDiscogsToken, saveDiscogsToken, removeDiscogsToken } from '../services/settings-store.js';
 import { checkDiscogsToken } from '../services/discogs-service.js';
 import { createElement, escapeHtml } from '../utils/html.js';
-import { icons } from '../utils/icons.js';
-import { goBack } from '../utils/router.js';
 
 export function renderSettingsView() {
   const node = createElement(`
     <div class="settings">
       <header class="nav-bar nav-bar--bordered">
-        <button type="button" class="nav-button nav-left" data-action="back">${icons.back}Collection</button>
+        <span class="nav-left"></span>
         <span class="nav-title">Settings</span>
         <span class="nav-right"></span>
       </header>
@@ -115,7 +113,6 @@ export function renderSettingsView() {
     refresh();
   });
 
-  node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/'));
 
   refresh();
   return node;

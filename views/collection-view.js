@@ -83,10 +83,9 @@ export async function renderCollectionView() {
   const node = createElement(`
     <div class="collection">
       <header class="nav-bar">
-        <a class="nav-button nav-left" href="#/settings" aria-label="Settings">${icons.settings}</a>
+        <span class="nav-left"></span>
         <span class="nav-title"></span>
         <span class="nav-right nav-actions">
-          <a class="nav-button" href="#/scan" aria-label="Add by barcode or search">${icons.barcode}</a>
           <a class="nav-button" href="#/add" aria-label="Add record">${icons.plus}</a>
         </span>
       </header>
