@@ -91,3 +91,23 @@ test('sort puts the same artist in year order, undated last', () => {
   ];
   assertDeepEqual(ids(sortRecords(same)), ['a', 'b', 'c']);
 });
+
+const dated = [
+  { id: 'a', artist: 'Kate Bush', title: 'Hounds of Love', year: 1985, dateAdded: '2026-11-01T10:00:00.000Z' },
+  { id: 'b', artist: 'Björk', title: 'Debut', year: 1993, dateAdded: '2026-11-14T09:00:00.000Z' },
+  { id: 'c', artist: 'The Smiths', title: 'The Queen Is Dead', year: null, dateAdded: '2026-11-14T09:00:00.000Z' },
+  { id: 'd', artist: 'Miles Davis', title: 'Kind of Blue', year: 1959, dateAdded: '' },
+];
+
+test('sort by recently added puts the newest first', () => {
+  // b and c were added at the same moment, so they fall back to artist order.
+  assertDeepEqual(ids(sortRecords(dated, 'recent')), ['b', 'c', 'a', 'd']);
+});
+
+test('sort by year puts the oldest first and undated last', () => {
+  assertDeepEqual(ids(sortRecords(dated, 'year')), ['d', 'a', 'b', 'c']);
+});
+
+test('an unknown sort falls back to artist order', () => {
+  assertDeepEqual(ids(sortRecords(dated, 'nonsense')), ids(sortRecords(dated)));
+});

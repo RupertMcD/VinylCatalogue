@@ -175,3 +175,39 @@
   font-size: 13px;
   color: var(--text-secondary);
 }
+
+/* Record count and the Sort button, under the search field. */
+.collection-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -6px var(--gutter) 10px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.collection-meta[hidden] { display: none; }
+
+.sort-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.sort-button strong { font-weight: 600; }
+.sort-button .icon { width: 16px; height: 16px; }
+
+/* The real picker sits invisibly on top, so tapping opens the iPhone menu. */
+.sort-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  font-size: 16px;
+  cursor: pointer;
+}

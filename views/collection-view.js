@@ -1,7 +1,7 @@
 // The Collection screen: search, a Grid/List switch and every record.
 
 import { getAllRecords, addRecordsIfMissing } from '../services/record-store.js';
-import { searchRecords, sortRecords } from '../utils/search.js';
+import { searchRecords, sortRecords, SORT_OPTIONS } from '../utils/search.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 import { icons } from '../utils/icons.js';
 import { isDevMode } from '../utils/dev-mode.js';
@@ -9,6 +9,7 @@ import { createSampleRecords } from '../models/sample-records.js';
 import { coverArt } from './cover-art.js';
 
 const LAYOUT_KEY = 'collection-layout';
+const SORT_KEY = 'collection-sort';
 
 // Kept between visits so search and scroll position survive opening a record.
 const state = { query: '', scrollY: 0 };
@@ -20,6 +21,18 @@ function loadLayout() {
 function saveLayout(layout) {
   try { localStorage.setItem(LAYOUT_KEY, layout); } catch { /* not essential */ }
 }
+
+function loadSort() {
+  let saved = '';
+  try { saved = localStorage.getItem(SORT_KEY) || ''; } catch { /* not essential */ }
+  return SORT_OPTIONS.some((option) => option.value === saved) ? saved : 'artist';
+}
+
+function saveSort(sort) {
+  try { localStorage.setItem(SORT_KEY, sort); } catch { /* not essential */ }
+}
+
+const sortLabel = (value) => (SORT_OPTIONS.find((option) => option.value === value) || SORT_OPTIONS[0]).label;
 
 const recordLink = (record) => `#/record/${encodeURIComponent(record.id)}`;
 
@@ -65,6 +78,7 @@ export async function renderCollectionView() {
     loadError = error.message;
   }
   let layout = loadLayout();
+  let sort = loadSort();
 
   const node = createElement(`
     <div class="collection">
@@ -90,12 +104,23 @@ export async function renderCollectionView() {
           <button type="button" data-layout="list">${icons.list}<span class="visually-hidden">List</span></button>
         </div>
       </div>
+      <div class="collection-meta">
+        <span class="record-count"></span>
+        <label class="sort-button">
+          <span>Sort: <strong class="sort-label"></strong></span>${icons.updown}
+          <select class="sort-select" aria-label="Sort by">
+            ${SORT_OPTIONS.map((option) => `<option value="${option.value}">${option.label}</option>`).join('')}
+          </select>
+        </label>
+      </div>
       <p class="notice" role="alert" hidden></p>
       <div class="results"></div>
       ${isDevMode ? devToolsHtml : ''}
     </div>`);
 
   const controls = node.querySelector('.collection-controls');
+  const meta = node.querySelector('.collection-meta');
+  const sortSelect = node.querySelector('.sort-select');
   const input = node.querySelector('#collection-search');
   const clearButton = node.querySelector('.search-clear');
   const results = node.querySelector('.results');
@@ -108,6 +133,10 @@ export async function renderCollectionView() {
 
   function renderResults() {
     controls.hidden = records.length === 0;
+    meta.hidden = records.length === 0;
+    node.querySelector('.record-count').textContent = records.length === 1 ? '1 record' : `${records.length} records`;
+    node.querySelector('.sort-label').textContent = sortLabel(sort);
+    sortSelect.value = sort;
     clearButton.hidden = state.query === '';
     node.querySelectorAll('[data-layout]').forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.layout === layout));
@@ -123,7 +152,7 @@ export async function renderCollectionView() {
       return;
     }
 
-    const matches = searchRecords(records, state.query);
+    const matches = sortRecords(searchRecords(records, state.query), sort);
     if (matches.length === 0) {
       results.innerHTML = `
         <div class="empty-state">
@@ -137,6 +166,12 @@ export async function renderCollectionView() {
     results.innerHTML = `${layout === 'list' ? listHtml(matches) : gridHtml(matches)}
       <p class="results-count">${count}</p>`;
   }
+
+  sortSelect.addEventListener('change', () => {
+    sort = sortSelect.value;
+    saveSort(sort);
+    renderResults();
+  });
 
   input.value = state.query;
   input.addEventListener('input', () => {

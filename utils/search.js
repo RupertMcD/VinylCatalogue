@@ -27,14 +27,35 @@ export function sortName(artist) {
 
 const compareText = (a, b) => a.localeCompare(b, 'en-GB', { sensitivity: 'base', numeric: true });
 
+// The ways the Collection can be ordered.
+export const SORT_OPTIONS = [
+  { value: 'artist', label: 'Artist' },
+  { value: 'recent', label: 'Recently Added' },
+  { value: 'year', label: 'Year' },
+];
+
+const yearOf = (record) => (Number.isInteger(record.year) ? record.year : Infinity);
+const timeOf = (record) => {
+  const time = Date.parse(record.dateAdded);
+  return Number.isNaN(time) ? -Infinity : time;
+};
+
 // Artist A-Z, then oldest year first (records without a year last), then title.
-export function sortRecords(records) {
-  return records.slice().sort((a, b) => {
-    const byArtist = compareText(sortName(a.artist), sortName(b.artist));
-    if (byArtist !== 0) return byArtist;
-    const yearA = a.year ?? Infinity;
-    const yearB = b.year ?? Infinity;
-    if (yearA !== yearB) return yearA - yearB;
-    return compareText(normaliseText(a.title), normaliseText(b.title));
-  });
+function byArtist(a, b) {
+  const artist = compareText(sortName(a.artist), sortName(b.artist));
+  if (artist !== 0) return artist;
+  if (yearOf(a) !== yearOf(b)) return yearOf(a) - yearOf(b);
+  return compareText(normaliseText(a.title), normaliseText(b.title));
+}
+
+const ORDERS = {
+  artist: byArtist,
+  // Newest first; records added at the same moment fall back to artist order.
+  recent: (a, b) => (timeOf(b) - timeOf(a)) || byArtist(a, b),
+  // Oldest year first, records without a year last; then artist order.
+  year: (a, b) => (yearOf(a) - yearOf(b)) || byArtist(a, b),
+};
+
+export function sortRecords(records, by = 'artist') {
+  return records.slice().sort(ORDERS[by] || ORDERS.artist);
 }
