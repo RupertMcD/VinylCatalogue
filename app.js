@@ -18,7 +18,9 @@ const routes = [
   { path: '/edit/:id', render: ({ id }) => renderRecordFormView(id) },
   { path: '/settings', render: () => renderSettingsView() },
   { path: '/scan', render: () => renderScanView() },
-  { path: '/lookup/:barcode', render: ({ barcode }) => renderDiscogsMatchesView(barcode) },
+  { path: '/scan/search', render: () => renderScanView({ startWithSearch: true }) },
+  { path: '/lookup/:barcode', render: ({ barcode }) => renderDiscogsMatchesView({ barcode }) },
+  { path: '/search/:query', render: ({ query }) => renderDiscogsMatchesView({ query }) },
 ];
 
 startRouter(document.getElementById('app'), routes);

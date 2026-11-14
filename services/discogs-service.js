@@ -91,6 +91,17 @@ export async function searchByBarcode(digits) {
   return [];
 }
 
+// Vinyl releases matching some words (artist, title or catalogue number).
+// Returns { matches, total }: up to 50 matches, and how many Discogs found.
+// `text` must already be checked with checkSearchText().
+export async function searchDiscogs(text) {
+  const params = new URLSearchParams({ q: text, type: 'release', format: 'Vinyl', per_page: '50' });
+  const json = await request(`/database/search?${params}`, getDiscogsToken());
+  const matches = parseSearchResults(json);
+  const total = Number(json && json.pagination && json.pagination.items) || matches.length;
+  return { matches, total };
+}
+
 // One release's full details, as fields for a new record.
 export async function getReleaseDetails(discogsId) {
   const json = await request(`/releases/${encodeURIComponent(discogsId)}`, getDiscogsToken());

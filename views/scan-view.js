@@ -1,20 +1,22 @@
-// The Add by Barcode screen: scan with the camera, or type the numbers
-// under the barcode. Either way it goes on to the Discogs lookup.
+// The Add by Barcode screen: scan with the camera, type the numbers under
+// the barcode, or search Discogs by artist, title or catalogue number.
+// Each goes on to the Discogs lookup.
 
 import { getDiscogsToken } from '../services/settings-store.js';
 import { checkBarcode } from '../utils/barcode.js';
+import { checkSearchText } from '../utils/discogs-search.js';
 import { createElement } from '../utils/html.js';
 import { icons } from '../utils/icons.js';
 import { navigate, goBack } from '../utils/router.js';
 
-export function renderScanView() {
+export function renderScanView({ startWithSearch = false } = {}) {
   const hasToken = getDiscogsToken() !== '';
 
   const node = createElement(`
     <div class="scan">
       <header class="nav-bar nav-bar--bordered">
         <button type="button" class="nav-button nav-left" data-action="back">${icons.back}Collection</button>
-        <span class="nav-title">Add by Barcode</span>
+        <span class="nav-title">Find a Record</span>
         <span class="nav-right"></span>
       </header>
 
@@ -44,6 +46,18 @@ export function renderScanView() {
         </label>
         <button type="submit" class="row row-button">Look Up</button>
       </form>
+
+      <h2 class="group-header" id="search-heading">No barcode? Search Discogs</h2>
+      <form class="grouped" data-form="search" novalidate>
+        <label class="row field" data-field="search">
+          <span class="visually-hidden">Artist, title or catalogue number</span>
+          <input name="search" type="search" autocomplete="off" autocorrect="off" spellcheck="false"
+            placeholder="Artist and title, or catalogue no." enterkeyhint="search" aria-describedby="search-error">
+          <span class="field-error scan-error" id="search-error" hidden></span>
+        </label>
+        <button type="submit" class="row row-button">Search</button>
+      </form>
+      <p class="matches-hint scan-search-hint">The catalogue number is usually on the spine or the label, for example PB 41447.</p>
 
       <div class="scan-footer">
         <a class="pill-button" href="#/add">Add Without a Barcode</a>
@@ -77,6 +91,34 @@ export function renderScanView() {
     navigate(`/lookup/${result.digits}`);
   });
 
+  // Search Discogs by words.
+  const searchForm = node.querySelector('[data-form="search"]');
+  const searchInput = searchForm.elements.search;
+  const searchRow = searchForm.querySelector('[data-field="search"]');
+  const searchError = searchForm.querySelector('.field-error');
+
+  function showSearchError(message) {
+    searchError.textContent = message;
+    searchError.hidden = !message;
+    searchRow.classList.toggle('field--invalid', Boolean(message));
+    searchInput.toggleAttribute('aria-invalid', Boolean(message));
+  }
+
+  searchInput.addEventListener('input', () => showSearchError(''));
+
+  searchForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const result = checkSearchText(searchInput.value);
+    if (!result.valid) {
+      showSearchError(result.error);
+      searchInput.focus();
+      return;
+    }
+    showSearchError('');
+    searchInput.blur();
+    navigate(`/search/${encodeURIComponent(result.text)}`);
+  });
+
   node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/'));
 
   // The camera. It stops when this screen closes or the app goes into the background.
@@ -95,7 +137,10 @@ export function renderScanView() {
     cameraMessage.hidden = !message;
     hint.hidden = state !== 'scanning';
     retry.hidden = state !== 'error' && state !== 'paused';
-    retryButton.textContent = state === 'paused' ? 'Scan Another Record' : 'Try the Camera Again';
+    const afterScan = Boolean(history.state && history.state.scanned);
+    retryButton.textContent = state !== 'paused'
+      ? 'Try the Camera Again'
+      : (afterScan ? 'Scan Another Record' : 'Use the Camera');
   }
 
   async function startCamera() {
@@ -161,6 +206,10 @@ export function renderScanView() {
   // Coming Back after a scan: wait to be asked, rather than scanning again.
   if (history.state && history.state.scanned) {
     setCameraState('paused', 'Ready for the next record.');
+  } else if (startWithSearch) {
+    // Arrived to search by words: keep the camera off and show the search box.
+    setCameraState('paused', 'Camera paused while you search.');
+    requestAnimationFrame(() => node.querySelector('#search-heading').scrollIntoView({ block: 'start' }));
   } else {
     startCamera();
   }

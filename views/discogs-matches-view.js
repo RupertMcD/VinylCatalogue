@@ -1,10 +1,12 @@
-// Looks a barcode up on Discogs and shows what was found:
-// one match opens the New Record form filled in; several are listed to
-// choose from; none offers adding by hand. Errors never lose the barcode.
+// Looks a record up on Discogs, by barcode or by typed words, and shows
+// what was found. For a barcode, one match opens the New Record form filled
+// in; otherwise matches are listed to choose from. Nothing found offers
+// adding by hand. Errors never lose what was scanned or typed.
 
-import { searchByBarcode, getReleaseDetails } from '../services/discogs-service.js';
+import { searchByBarcode, searchDiscogs, getReleaseDetails } from '../services/discogs-service.js';
 import { getAllRecords } from '../services/record-store.js';
 import { checkBarcode, sameBarcode } from '../utils/barcode.js';
+import { checkSearchText, markOwned } from '../utils/discogs-search.js';
 import { setRecordDraft } from '../utils/record-draft.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 import { icons } from '../utils/icons.js';
@@ -21,6 +23,7 @@ function matchRow(match, index) {
         <span class="list-sub">${escapeHtml(match.artist)}</span>
         ${details ? `<span class="list-sub match-details">${escapeHtml(details)}</span>` : ''}
         ${match.formatText ? `<span class="list-sub match-details">${escapeHtml(match.formatText)}</span>` : ''}
+        ${match.owned ? '<span class="owned-tag">In your collection</span>' : ''}
       </span>
       <span class="match-status">${icons.chevron}</span>
     </button>`;
@@ -38,45 +41,54 @@ function ownedNotice(owned) {
     </div>`;
 }
 
-async function findOwned(barcode) {
+async function loadRecords() {
   try {
-    return (await getAllRecords()).filter((record) => sameBarcode(record.barcode, barcode));
+    return await getAllRecords();
   } catch {
     return [];
   }
 }
 
-export async function renderDiscogsMatchesView(barcodeText) {
-  const { valid, digits } = checkBarcode(barcodeText);
+// Pass { barcode } for a barcode lookup, or { query } for a word search.
+export async function renderDiscogsMatchesView({ barcode = null, query = null } = {}) {
+  const byBarcode = barcode !== null;
+  const barcodeCheck = byBarcode ? checkBarcode(barcode) : null;
+  const searchCheck = byBarcode ? null : checkSearchText(query);
+  const digits = byBarcode ? barcodeCheck.digits : '';
+  const text = byBarcode ? '' : searchCheck.text;
+  const title = byBarcode ? `Barcode ${digits}` : `“${text}”`;
 
   const node = createElement(`
     <div class="matches">
       <header class="nav-bar nav-bar--bordered">
         <button type="button" class="nav-button nav-left" data-action="back">${icons.back}Back</button>
-        <span class="nav-title">Barcode ${escapeHtml(digits)}</span>
+        <span class="nav-title">${escapeHtml(title)}</span>
         <span class="nav-right"></span>
       </header>
-      <div class="matches-body">
-        <div class="empty-state"><p role="status">Looking up on Discogs…</p></div>
-      </div>
+      <div class="matches-body"></div>
     </div>`);
 
   const body = node.querySelector('.matches-body');
   node.querySelector('[data-action="back"]').addEventListener('click', () => goBack('/scan'));
 
   function addByHand() {
-    setRecordDraft({ barcode: digits });
+    setRecordDraft(byBarcode ? { barcode: digits } : {});
     navigate('/add');
   }
 
-  function showProblem(title, message, { retry = false, settings = false } = {}) {
+  function showLoading(message = 'Looking up on Discogs…') {
+    body.innerHTML = `<div class="empty-state"><p role="status">${escapeHtml(message)}</p></div>`;
+  }
+
+  function showProblem(heading, message, { retry = false, settings = false, search = false } = {}) {
     body.innerHTML = `
       <div class="empty-state">
-        <h2>${escapeHtml(title)}</h2>
+        <h2>${escapeHtml(heading)}</h2>
         <p>${escapeHtml(message)}</p>
         <div class="button-stack">
           ${retry ? '<button type="button" class="pill-button" data-action="retry">Try Again</button>' : ''}
           ${settings ? '<a class="pill-button" href="#/settings">Open Settings</a>' : ''}
+          ${search ? '<a class="pill-button" href="#/scan/search">Search Discogs</a>' : ''}
           <button type="button" class="pill-button" data-action="by-hand">Add by Hand</button>
         </div>
       </div>`;
@@ -98,15 +110,18 @@ export async function renderDiscogsMatchesView(barcodeText) {
     }
   }
 
-  function showMatches(matches, owned) {
+  function showMatches(matches, { owned = [], total = matches.length } = {}) {
     // Mark this lookup as shown (only while it's the screen on show).
     if (node.isConnected) history.replaceState({ ...(history.state || {}), listed: true }, '');
     const heading = matches.length === 1 ? '1 match on Discogs' : `${matches.length} matches on Discogs`;
+    const hint = total > matches.length
+      ? `Showing the first ${matches.length} of ${total}. Add a word or two – the label, year or catalogue number – to narrow it down.`
+      : 'Pick the one that matches your copy. The catalogue number and label on the sleeve help.';
     body.innerHTML = `
       ${ownedNotice(owned)}
       <p class="notice" role="alert" hidden></p>
       <h2 class="group-header group-header--first">${heading}</h2>
-      <p class="matches-hint">Pick the one that matches your copy. The catalogue number and label on the sleeve help.</p>
+      <p class="matches-hint">${escapeHtml(hint)}</p>
       <div class="record-list">${matches.map(matchRow).join('')}</div>
       <div class="scan-footer">
         <button type="button" class="pill-button" data-action="by-hand">None of These – Add by Hand</button>
@@ -131,41 +146,75 @@ export async function renderDiscogsMatchesView(barcodeText) {
     });
   }
 
-  async function lookUp() {
-    body.innerHTML = '<div class="empty-state"><p role="status">Looking up on Discogs…</p></div>';
+  function showError(error) {
+    const settings = error.kind === 'no-token' || error.kind === 'token';
+    showProblem(settings ? 'Discogs token needed' : 'Couldn’t look it up', error.message, { retry: !settings, settings });
+  }
+
+  async function lookUpBarcode() {
     let matches;
     try {
       matches = await searchByBarcode(digits);
     } catch (error) {
-      const settings = error.kind === 'no-token' || error.kind === 'token';
-      const retry = !settings;
-      showProblem(settings ? 'Discogs token needed' : 'Couldn’t look it up', error.message, { retry, settings });
+      showError(error);
       return;
     }
 
     if (matches.length === 0) {
-      showProblem('Not found on Discogs', 'No release has this barcode. You can add it by hand – the barcode is filled in for you.');
+      showProblem(
+        'Not found on Discogs',
+        'No release has this barcode. Try searching by artist, title or catalogue number, or add it by hand – the barcode is filled in for you.',
+        { search: true },
+      );
       return;
     }
 
-    const owned = await findOwned(digits);
+    const records = await loadRecords();
+    const owned = records.filter((record) => sameBarcode(record.barcode, digits));
+    matches = markOwned(matches, records);
     // Only jump straight to the form the first time, never when coming Back.
     const seenBefore = Boolean(history.state && history.state.listed);
-    if (matches.length === 1 && owned.length === 0 && !seenBefore) {
-      body.innerHTML = '<div class="empty-state"><p role="status">Found it. Getting the details…</p></div>';
+    if (matches.length === 1 && owned.length === 0 && !matches[0].owned && !seenBefore) {
+      showLoading('Found it. Getting the details…');
       const result = await choose(matches[0], { replace: true });
       if (result === true) return;
-      showMatches(matches, owned);
+      showMatches(matches, { owned });
       const notice = body.querySelector('.notice');
       notice.textContent = result.message;
       notice.hidden = false;
       return;
     }
-    showMatches(matches, owned);
+    showMatches(matches, { owned });
   }
 
-  if (!valid) {
-    showProblem('That barcode doesn’t look right', 'Go back and check the numbers.');
+  async function lookUpWords() {
+    let found;
+    try {
+      found = await searchDiscogs(text);
+    } catch (error) {
+      showError(error);
+      return;
+    }
+    if (found.matches.length === 0) {
+      showProblem(
+        'Nothing found on Discogs',
+        'No vinyl release matches that. Check the spelling, or try fewer words – just the catalogue number often works best.',
+        { search: true },
+      );
+      return;
+    }
+    showMatches(markOwned(found.matches, await loadRecords()), { total: found.total });
+  }
+
+  function lookUp() {
+    showLoading();
+    return byBarcode ? lookUpBarcode() : lookUpWords();
+  }
+
+  if (byBarcode && !barcodeCheck.valid) {
+    showProblem('That barcode doesn’t look right', 'Go back and check the numbers.', { search: true });
+  } else if (!byBarcode && !searchCheck.valid) {
+    showProblem('Nothing to search for', searchCheck.error, { search: true });
   } else {
     lookUp();
   }

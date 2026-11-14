@@ -44,6 +44,19 @@
 
 .matches .record-list { margin-bottom: 24px; }
 
+.scan-search-hint { margin-top: -20px; margin-bottom: 28px; }
+
+.owned-tag {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 1px 8px;
+  border-radius: 9px;
+  background: var(--fill);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* Each match is a button that looks like a list row. */
 .match-row {
   width: 100%;
