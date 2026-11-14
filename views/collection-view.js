@@ -69,7 +69,7 @@ export async function renderCollectionView() {
   const node = createElement(`
     <div class="collection">
       <header class="nav-bar">
-        <span class="nav-left"></span>
+        <a class="nav-button nav-left" href="#/settings" aria-label="Settings">${icons.settings}</a>
         <span class="nav-title"></span>
         <a class="nav-button nav-right" href="#/add" aria-label="Add record">${icons.plus}</a>
       </header>

@@ -1,0 +1,26 @@
+/* Styles for the Settings screen, plus small shared bits for grouped lists. */
+
+.group-header--first { margin-top: 24px; }
+
+.settings .field-label { width: 64px; }
+
+.settings .row-button[hidden] { display: none; }
+.settings .row-button:disabled { opacity: 0.4; }
+
+.settings-message {
+  margin: -16px calc(var(--gutter) + 16px) 16px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.settings-message--error { color: var(--danger); }
+
+.group-footer {
+  margin: 0 calc(var(--gutter) + 16px) 28px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.group-footer p { margin: 0 0 8px; }
+.group-footer strong { font-weight: 600; color: var(--text); }

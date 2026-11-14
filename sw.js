@@ -6,7 +6,7 @@
 // new files the next time the app opens with signal, then uses them.
 // When you add a new app file, add it to APP_FILES (a test checks this).
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `vinyl-catalogue-${CACHE_VERSION}`;
 
 // APP_FILES START
@@ -21,13 +21,18 @@ const APP_FILES = [
   'icons/icon-maskable-512.png',
   'models/record.js',
   'models/sample-records.js',
+  'services/discogs-service.js',
   'services/record-store.js',
+  'services/settings-store.js',
   'styles/base.css',
   'styles/collection.css',
   'styles/detail.css',
   'styles/form.css',
+  'styles/settings.css',
   'styles/sheet.css',
+  'utils/barcode.js',
   'utils/dev-mode.js',
+  'utils/discogs-parser.js',
   'utils/format.js',
   'utils/html.js',
   'utils/icons.js',
@@ -41,6 +46,7 @@ const APP_FILES = [
   'views/cover-art.js',
   'views/record-detail-view.js',
   'views/record-form-view.js',
+  'views/settings-view.js',
 ];
 // APP_FILES END
 
