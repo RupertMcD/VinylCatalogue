@@ -124,7 +124,7 @@ Update this list as phases are completed.
 
 - [x] Phase 1 - Catalogue with manual entry, in the browser on the Mac
 - [x] Phase 2 - Online and on my iPhone home screen
-- [ ] Phase 3 - Barcode scan and Discogs auto-fill
+- [x] Phase 3 - Barcode scan and Discogs auto-fill
 - [ ] Phase 4 - Polish, camera-first home, CSV export and import
 - [ ] Phase 5 - Wishlist and shelves
 - [ ] Phase 6 - Cover-photo recognition
