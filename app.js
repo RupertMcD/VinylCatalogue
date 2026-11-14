@@ -4,6 +4,8 @@ import { startRouter } from './utils/router.js';
 import { renderCollectionView } from './views/collection-view.js';
 import { renderRecordDetailView } from './views/record-detail-view.js';
 import { renderRecordFormView } from './views/record-form-view.js';
+import { setUpServiceWorker } from './utils/service-worker-setup.js';
+import { requestPersistentStorage } from './utils/persistent-storage.js';
 
 const routes = [
   { path: '/', render: () => renderCollectionView() },
@@ -13,3 +15,7 @@ const routes = [
 ];
 
 startRouter(document.getElementById('app'), routes);
+
+// Offline support and permanent storage. Neither blocks the app from starting.
+setUpServiceWorker();
+requestPersistentStorage();
