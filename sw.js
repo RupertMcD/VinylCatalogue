@@ -6,7 +6,7 @@
 // new files the next time the app opens with signal, then uses them.
 // When you add a new app file, add it to APP_FILES (a test checks this).
 
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const CACHE_NAME = `vinyl-catalogue-${CACHE_VERSION}`;
 
 // Copies of Discogs cover pictures, kept by services/cover-cache.js.
@@ -27,6 +27,7 @@ const APP_FILES = [
   'models/record.js',
   'models/sample-records.js',
   'models/shelves.js',
+  'services/claude-service.js',
   'services/cover-cache.js',
   'services/discogs-service.js',
   'services/record-store.js',
@@ -43,6 +44,8 @@ const APP_FILES = [
   'utils/barcode-reader.js',
   'utils/barcode.js',
   'utils/camera-scanner.js',
+  'utils/cover-guess.js',
+  'utils/cover-recognition.js',
   'utils/csv.js',
   'utils/dev-mode.js',
   'utils/discogs-link.js',
@@ -68,6 +71,7 @@ const APP_FILES = [
   'views/discogs-matches-view.js',
   'views/import-preview-view.js',
   'views/cover-art.js',
+  'views/cover-photo-view.js',
   'views/record-detail-view.js',
   'views/record-form-view.js',
   'views/scan-view.js',
@@ -116,7 +120,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Leave other websites alone (for example the Discogs lookups).
+  // Leave other websites alone (for example Discogs and Claude lookups).
   if (url.origin !== self.location.origin) return;
 
   event.respondWith((async () => {

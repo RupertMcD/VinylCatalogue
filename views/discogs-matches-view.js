@@ -8,6 +8,8 @@ import { getAllRecords } from '../services/record-store.js';
 import { checkBarcode, sameBarcode } from '../utils/barcode.js';
 import { checkSearchText, markOwned } from '../utils/discogs-search.js';
 import { narrowMatches } from '../utils/match-filter.js';
+import { getCoverGuess } from '../utils/cover-guess.js';
+import { coverGuessName } from '../utils/cover-recognition.js';
 import { setRecordDraft, getAddTarget } from '../utils/record-draft.js';
 import { createElement, escapeHtml } from '../utils/html.js';
 import { icons } from '../utils/icons.js';
@@ -47,6 +49,19 @@ function ownedNotice(owned) {
   return notes.length ? `<div class="info-panel info-panel--left">${notes.join('')}</div>` : '';
 }
 
+// What Claude recognised, when this search came from a cover photo.
+function guessNotice(guess) {
+  if (!guess) return '';
+  const unsure = guess.confidence === 'low' ? ' It wasn’t sure, so check against your copy.' : '';
+  const catno = guess.catalogueNumber
+    ? `<p>Catalogue number on the cover: <strong>${escapeHtml(guess.catalogueNumber)}</strong>.</p>` : '';
+  return `
+    <div class="info-panel info-panel--left">
+      <p><strong>From your photo:</strong> Claude thinks this is ${escapeHtml(coverGuessName(guess))}.${escapeHtml(unsure)}</p>
+      ${catno}
+    </div>`;
+}
+
 async function loadRecords() {
   try {
     return await getAllRecords();
@@ -64,6 +79,7 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null, r
   const searchCheck = byBarcode || byRelease ? null : checkSearchText(query);
   const digits = byBarcode ? barcodeCheck.digits : '';
   const text = searchCheck ? searchCheck.text : '';
+  const guess = searchCheck ? getCoverGuess(text) : null;
   let title = `“${text}”`;
   if (byBarcode) title = `Barcode ${digits}`;
   if (byRelease) title = 'Discogs Release';
@@ -129,6 +145,7 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null, r
       : 'Pick the one that matches your copy. The catalogue number and label on the sleeve help.';
     const target = getAddTarget() === 'wishlist' ? ' It will go on your wishlist.' : '';
     body.innerHTML = `
+      ${guessNotice(guess)}
       ${ownedNotice(owned)}
       <p class="notice" role="alert" hidden></p>
       <h2 class="group-header group-header--first">${heading}</h2>
@@ -174,6 +191,12 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null, r
         empty.querySelector('p').textContent = `None of these match “${text}”. Check the number, or clear the box.`;
       };
       input.addEventListener('input', applyNarrow);
+      // From a cover photo: start with the catalogue number Claude read,
+      // as long as it matches at least one pressing.
+      if (guess && guess.catalogueNumber && narrowMatches(matches, guess.catalogueNumber).length > 0) {
+        input.value = guess.catalogueNumber;
+        applyNarrow();
+      }
       narrowForm.addEventListener('submit', (event) => { event.preventDefault(); input.blur(); });
     }
     body.querySelectorAll('.match-row').forEach((row) => {
@@ -240,6 +263,14 @@ export async function renderDiscogsMatchesView({ barcode = null, query = null, r
       found = await searchDiscogs(text);
     } catch (error) {
       showError(error);
+      return;
+    }
+    if (found.matches.length === 0 && guess) {
+      showProblem(
+        'Nothing found on Discogs',
+        `Claude thought this was ${coverGuessName(guess)}, but Discogs has no vinyl release by that name. Try searching with different words, or add it by hand.`,
+        { search: true },
+      );
       return;
     }
     if (found.matches.length === 0) {

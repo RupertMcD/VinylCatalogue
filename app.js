@@ -13,6 +13,7 @@ import { keepCoversOffline } from './services/cover-cache.js';
 import { createTabBar, showTab } from './views/tab-bar.js';
 import { renderImportPreviewView } from './views/import-preview-view.js';
 import { renderWishlistView } from './views/wishlist-view.js';
+import { renderCoverPhotoView } from './views/cover-photo-view.js';
 
 // `tab` is the tab bar tab each screen belongs to; no tab hides the bar.
 // The app opens on "/", the Add tab, with the camera ready.
@@ -22,6 +23,7 @@ const routes = [
   { path: '/scan/search', tab: 'add', render: () => renderScanView({ startWithSearch: true }) },
   { path: '/lookup/:barcode', tab: 'add', render: ({ barcode }) => renderDiscogsMatchesView({ barcode }) },
   { path: '/search/:query', tab: 'add', render: ({ query }) => renderDiscogsMatchesView({ query }) },
+  { path: '/cover', tab: 'add', render: () => renderCoverPhotoView() },
   { path: '/release/:releaseId', tab: 'add', render: ({ releaseId }) => renderDiscogsMatchesView({ releaseId }) },
   { path: '/collection', tab: 'collection', render: () => renderCollectionView() },
   { path: '/wishlist', tab: 'wishlist', render: () => renderWishlistView() },

@@ -2,7 +2,7 @@
 // the barcode, or search Discogs by artist, title or catalogue number.
 // Each goes on to the Discogs lookup.
 
-import { getDiscogsToken } from '../services/settings-store.js';
+import { getDiscogsToken, getClaudeKey } from '../services/settings-store.js';
 import { checkBarcode } from '../utils/barcode.js';
 import { checkSearchText } from '../utils/discogs-search.js';
 import { parseDiscogsReleaseLink } from '../utils/discogs-link.js';
@@ -10,6 +10,7 @@ import { createElement } from '../utils/html.js';
 import { navigate } from '../utils/router.js';
 import { takeFlash } from '../utils/flash.js';
 import { getAddTarget, setAddTarget } from '../utils/record-draft.js';
+import { coverPhotoButton, setPendingCoverPhoto } from './cover-photo-view.js';
 
 export function renderScanView({ startWithSearch = false } = {}) {
   const hasToken = getDiscogsToken() !== '';
@@ -45,6 +46,12 @@ export function renderScanView({ startWithSearch = false } = {}) {
       <p class="camera-hint">Line the barcode up inside the frame.</p>
       <div class="camera-retry" hidden>
         <button type="button" class="pill-button" data-action="retry-camera">Try the Camera Again</button>
+      </div>
+
+      <h2 class="group-header">Or photograph the cover</h2>
+      <div class="scan-cover">
+        ${getClaudeKey() ? coverPhotoButton() : '<a class="pill-button" href="#/cover">Photograph the Cover</a>'}
+        <p class="matches-hint scan-cover-hint">Take a photo of the front cover and Claude will work out which record it is.</p>
       </div>
 
       <h2 class="group-header">Or type the barcode</h2>
@@ -146,6 +153,24 @@ export function renderScanView({ startWithSearch = false } = {}) {
     navigate(`/search/${encodeURIComponent(result.text)}`);
   });
 
+
+  // Photograph the cover: the iPhone camera opens, and the photo goes to
+  // the Cover Photo screen. The barcode camera pauses meanwhile.
+  // (With no Claude key yet, the button links to a screen explaining that.)
+  const coverInput = node.querySelector('[data-action="cover-photo"]');
+  coverInput?.addEventListener('click', () => {
+    if (!scanner) return;
+    stopCamera();
+    pausedLabel = 'Use the Camera';
+    setCameraState('paused', 'Camera paused while you photograph the cover.');
+  });
+  coverInput?.addEventListener('change', () => {
+    const file = coverInput.files[0];
+    coverInput.value = '';
+    if (!file) return;
+    setPendingCoverPhoto(file);
+    navigate('/cover');
+  });
 
   // The camera. It stops when this screen closes or the app goes into the background.
   const camera = node.querySelector('.camera');

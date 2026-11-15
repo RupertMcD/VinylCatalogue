@@ -1,10 +1,12 @@
-// The Settings screen: the Discogs token, and backing up the collection
-// to a CSV file (and restoring from one).
+// The Settings screen: the Discogs token, the Claude API key, shelves,
+// and backing up the collection to a CSV file (and restoring from one).
 
 import {
   getDiscogsToken, saveDiscogsToken, removeDiscogsToken, getLastExport, setLastExport,
+  getClaudeKey, saveClaudeKey, removeClaudeKey,
 } from '../services/settings-store.js';
 import { checkDiscogsToken } from '../services/discogs-service.js';
+import { checkClaudeKey } from '../services/claude-service.js';
 import { getAllRecords, saveRecords } from '../services/record-store.js';
 import { listShelves, renameShelf, removeShelf, cleanShelfName } from '../models/shelves.js';
 import { showConfirmSheet } from './confirm-sheet.js';
@@ -51,10 +53,31 @@ export async function renderSettingsView() {
         <button type="button" class="row row-button" data-action="check">Check Token</button>
         <button type="button" class="row row-button row-button--danger" data-action="remove">Remove Token</button>
       </form>
-      <p class="settings-message" role="status" hidden></p>
+      <p class="settings-message" data-token-message role="status" hidden></p>
       <div class="group-footer">
         <p>The app uses Discogs to fill in record details from a barcode. Your token is kept only on this phone.</p>
         <p>To get a token: sign in at discogs.com, open <strong>Settings</strong>, then <strong>Developers</strong>, and tap <strong>Generate new token</strong>. Copy it and paste it above.</p>
+      </div>
+
+      <h2 class="group-header">Cover Photos</h2>
+      <form class="grouped" data-form="claude" novalidate>
+        <div class="row">
+          <span class="row-label">Status</span>
+          <span class="row-value" data-claude-status></span>
+        </div>
+        <label class="row field">
+          <span class="field-label">API key</span>
+          <input name="key" type="password" autocomplete="off" autocapitalize="off"
+            autocorrect="off" spellcheck="false" enterkeyhint="done">
+        </label>
+        <button type="submit" class="row row-button" data-claude-action="save">Save Key</button>
+        <button type="button" class="row row-button" data-claude-action="check">Check Key</button>
+        <button type="button" class="row row-button row-button--danger" data-claude-action="remove">Remove Key</button>
+      </form>
+      <p class="settings-message" data-claude-message role="status" hidden></p>
+      <div class="group-footer">
+        <p>With a key, you can photograph a record's front cover on the Add tab, and Claude (Anthropic's AI) works out which record it is. The photo is sent to Anthropic to be read, and isn't kept by the app. Your key is kept only on this phone.</p>
+        <p>Claude's API is paid by use, separately from any Claude subscription: about 1p per photo. To get a key: sign in at platform.claude.com, open <strong>Settings</strong>, then <strong>API Keys</strong>, and tap <strong>Create Key</strong>. Name it "Vinyl", copy it and paste it above. In <strong>Settings</strong>, then <strong>Limits</strong>, you can set a low monthly spend limit.</p>
       </div>
 
       <h2 class="group-header">Shelves</h2>
@@ -91,7 +114,7 @@ export async function renderSettingsView() {
   const form = node.querySelector('[data-form="token"]');
   const input = form.elements.token;
   const status = node.querySelector('[data-status]');
-  const message = node.querySelector('.settings-message:not([data-backup-message])');
+  const message = node.querySelector('[data-token-message]');
   const buttons = node.querySelectorAll('[data-action="save"], [data-action="check"], [data-action="remove"]');
 
   function showMessage(text, isError = false) {
@@ -164,6 +187,86 @@ export async function renderSettingsView() {
     input.value = '';
     showMessage('Token removed from this phone.');
     refresh();
+  });
+
+  // The Claude API key, for cover photos. Works like the Discogs token.
+  const claudeForm = node.querySelector('[data-form="claude"]');
+  const claudeInput = claudeForm.elements.key;
+  const claudeStatus = node.querySelector('[data-claude-status]');
+  const claudeMessage = node.querySelector('[data-claude-message]');
+  const claudeButtons = claudeForm.querySelectorAll('button');
+  const claudeButton = (action) => claudeForm.querySelector(`[data-claude-action="${action}"]`);
+
+  function showClaudeMessage(text, isError = false) {
+    claudeMessage.textContent = text;
+    claudeMessage.hidden = !text;
+    claudeMessage.classList.toggle('settings-message--error', isError);
+  }
+
+  function refreshClaude() {
+    const saved = getClaudeKey() !== '';
+    claudeStatus.textContent = saved ? 'Key saved' : 'No key yet';
+    claudeInput.placeholder = saved ? 'Paste a new key to replace it' : 'Paste your key';
+    claudeButton('check').hidden = !saved;
+    claudeButton('remove').hidden = !saved;
+  }
+
+  async function claudeBusy(task) {
+    claudeButtons.forEach((button) => { button.disabled = true; });
+    try {
+      await task();
+    } finally {
+      claudeButtons.forEach((button) => { button.disabled = false; });
+      refreshClaude();
+    }
+  }
+
+  claudeForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const key = claudeInput.value.trim();
+    if (!key) {
+      showClaudeMessage('Paste your Claude API key first.', true);
+      claudeInput.focus();
+      return;
+    }
+    claudeInput.blur();
+    claudeBusy(async () => {
+      showClaudeMessage('Checking with Claude…');
+      try {
+        await checkClaudeKey(key);
+        saveClaudeKey(key);
+        claudeInput.value = '';
+        showClaudeMessage('Saved. Connected to Claude.');
+      } catch (error) {
+        if (error.kind === 'key') {
+          showClaudeMessage("Claude didn't accept that key, so it wasn't saved. Check you copied all of it.", true);
+        } else if (error.kind === 'offline' || error.kind === 'slow' || error.kind === 'busy' || error.kind === 'failed') {
+          // Can't check right now, but the key may be fine, so keep it.
+          saveClaudeKey(key);
+          claudeInput.value = '';
+          showClaudeMessage(`Saved, but it couldn't be checked yet. ${error.message}`, true);
+        } else {
+          showClaudeMessage(error.message, true);
+        }
+      }
+    });
+  });
+
+  claudeButton('check').addEventListener('click', () => claudeBusy(async () => {
+    showClaudeMessage('Checking with Claude…');
+    try {
+      await checkClaudeKey(getClaudeKey());
+      showClaudeMessage('Working. Connected to Claude.');
+    } catch (error) {
+      showClaudeMessage(error.message, true);
+    }
+  }));
+
+  claudeButton('remove').addEventListener('click', () => {
+    removeClaudeKey();
+    claudeInput.value = '';
+    showClaudeMessage('Key removed from this phone.');
+    refreshClaude();
   });
 
   // Backup. The file is prepared now, so a tap can open the share sheet
@@ -325,6 +428,7 @@ export async function renderSettingsView() {
   refreshBackup();
 
   refresh();
+  refreshClaude();
   return node;
 }
 

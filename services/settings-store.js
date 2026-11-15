@@ -1,6 +1,6 @@
 // Keeps the app's settings on this device only (in the browser's own
-// storage). The Discogs token is never written into the code or sent
-// anywhere except to Discogs itself.
+// storage). The Discogs token and the Claude API key are never written
+// into the code, and each is sent only to its own service.
 
 const DISCOGS_TOKEN_KEY = 'discogs-token';
 
@@ -23,6 +23,33 @@ export function saveDiscogsToken(token) {
 export function removeDiscogsToken() {
   try {
     localStorage.removeItem(DISCOGS_TOKEN_KEY);
+  } catch {
+    // Nothing saved, so nothing to remove.
+  }
+}
+
+// The Claude API key, used to recognise cover photos.
+const CLAUDE_KEY_KEY = 'claude-api-key';
+
+export function getClaudeKey() {
+  try {
+    return localStorage.getItem(CLAUDE_KEY_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveClaudeKey(key) {
+  try {
+    localStorage.setItem(CLAUDE_KEY_KEY, String(key).trim());
+  } catch {
+    throw new Error("The key couldn't be saved on this device. Please try again.");
+  }
+}
+
+export function removeClaudeKey() {
+  try {
+    localStorage.removeItem(CLAUDE_KEY_KEY);
   } catch {
     // Nothing saved, so nothing to remove.
   }
